@@ -1,28 +1,28 @@
-package com.example.reloadcostcaluclator.ui
+package com.example.reloadcostcaluclator.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.reloadcostcaluclator.ui.components.CostInputField
+import com.example.reloadcostcaluclator.ui.components.ResultRow
 import com.example.reloadcostcaluclator.ui.theme.ReloadCostCaluclatorTheme
+import com.example.reloadcostcaluclator.viewmodel.LoadCostCalculatorUiState
+import com.example.reloadcostcaluclator.viewmodel.LoadCostCalculatorViewModel
 
 @Composable
 fun LoadCostCalculatorScreen(
@@ -77,64 +77,60 @@ private fun LoadCostCalculatorContent(
             label = "Powder price",
             value = uiState.powderPrice,
             onValueChange = onPowderPriceChanged,
-            keyboardType = KeyboardType.Decimal,
         )
         CostInputField(
             label = "Powder container weight (lbs)",
             value = uiState.powderContainerWeight,
             onValueChange = onPowderContainerWeightChanged,
-            keyboardType = KeyboardType.Decimal,
+            isDecimal = true,
         )
         CostInputField(
             label = "Charge weight (grains)",
             value = uiState.chargeWeight,
             onValueChange = onChargeWeightChanged,
-            keyboardType = KeyboardType.Decimal,
+            isDecimal = true,
         )
 
         CostInputField(
             label = "Primer price",
             value = uiState.primerPrice,
             onValueChange = onPrimerPriceChanged,
-            keyboardType = KeyboardType.Decimal,
         )
         CostInputField(
             label = "Primer quantity",
             value = uiState.primerQuantity,
             onValueChange = onPrimerQuantityChanged,
-            keyboardType = KeyboardType.Number,
+            isDecimal = false,
         )
 
         CostInputField(
             label = "Bullet price",
             value = uiState.bulletPrice,
             onValueChange = onBulletPriceChanged,
-            keyboardType = KeyboardType.Decimal,
         )
         CostInputField(
             label = "Bullet quantity",
             value = uiState.bulletQuantity,
             onValueChange = onBulletQuantityChanged,
-            keyboardType = KeyboardType.Number,
+            isDecimal = false,
         )
 
         CostInputField(
             label = "Brass price",
             value = uiState.brassPrice,
             onValueChange = onBrassPriceChanged,
-            keyboardType = KeyboardType.Decimal,
         )
         CostInputField(
             label = "Brass quantity",
             value = uiState.brassQuantity,
             onValueChange = onBrassQuantityChanged,
-            keyboardType = KeyboardType.Number,
+            isDecimal = false,
         )
         CostInputField(
             label = "Brass reload count",
             value = uiState.brassReloadCount,
             onValueChange = onBrassReloadCountChanged,
-            keyboardType = KeyboardType.Number,
+            isDecimal = false,
         )
 
         Button(
@@ -163,32 +159,6 @@ private fun LoadCostCalculatorContent(
         }
     }
 }
-
-@Composable
-private fun CostInputField(
-    label: String,
-    value: String,
-    onValueChange: (String) -> Unit,
-    keyboardType: KeyboardType,
-) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label) },
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-        modifier = Modifier.fillMaxWidth(),
-        singleLine = true,
-    )
-}
-
-@Composable
-private fun ResultRow(label: String, value: Double) {
-    Row(modifier = Modifier.fillMaxWidth()) {
-        Text(text = "$label: ${formatCurrency(value)}")
-    }
-}
-
-private fun formatCurrency(value: Double): String = "$" + "%.4f".format(value)
 
 @Preview(showBackground = true)
 @Composable
