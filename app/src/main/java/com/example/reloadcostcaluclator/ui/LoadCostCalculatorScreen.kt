@@ -7,8 +7,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -16,66 +16,54 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.reloadcostcaluclator.ui.theme.ReloadCostCaluclatorTheme
-import com.example.reloadcostcaluclator.util.AmmoCostCalculator
 
 @Composable
-fun LoadCostCalculatorScreen(modifier: Modifier = Modifier) {
-    var powderPrice by remember { mutableStateOf("") }
-    var powderContainerWeight by remember { mutableStateOf("") }
-    var chargeWeight by remember { mutableStateOf("") }
-    var primerPrice by remember { mutableStateOf("") }
-    var primerQuantity by remember { mutableStateOf("") }
-    var bulletPrice by remember { mutableStateOf("") }
-    var bulletQuantity by remember { mutableStateOf("") }
-    var brassPrice by remember { mutableStateOf("") }
-    var brassQuantity by remember { mutableStateOf("") }
-    var brassReloadCount by remember { mutableStateOf("") }
+fun LoadCostCalculatorScreen(
+    modifier: Modifier = Modifier,
+    viewModel: LoadCostCalculatorViewModel = viewModel(),
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    var powderCostPerRound by remember { mutableStateOf(0.0) }
-    var primerCostPerRound by remember { mutableStateOf(0.0) }
-    var bulletCostPerRound by remember { mutableStateOf(0.0) }
-    var brassCostPerRound by remember { mutableStateOf(0.0) }
-    var totalCostPerRound by remember { mutableStateOf(0.0) }
-    var totalCostPer50 by remember { mutableStateOf(0.0) }
-    var totalCostPer100 by remember { mutableStateOf(0.0) }
+    LoadCostCalculatorContent(
+        modifier = modifier,
+        uiState = uiState,
+        onPowderPriceChanged = viewModel::onPowderPriceChanged,
+        onPowderContainerWeightChanged = viewModel::onPowderContainerWeightChanged,
+        onChargeWeightChanged = viewModel::onChargeWeightChanged,
+        onPrimerPriceChanged = viewModel::onPrimerPriceChanged,
+        onPrimerQuantityChanged = viewModel::onPrimerQuantityChanged,
+        onBulletPriceChanged = viewModel::onBulletPriceChanged,
+        onBulletQuantityChanged = viewModel::onBulletQuantityChanged,
+        onBrassPriceChanged = viewModel::onBrassPriceChanged,
+        onBrassQuantityChanged = viewModel::onBrassQuantityChanged,
+        onBrassReloadCountChanged = viewModel::onBrassReloadCountChanged,
+        onCalculateClicked = viewModel::onCalculateClicked,
+    )
+}
 
-    fun calculate() {
-        powderCostPerRound = AmmoCostCalculator.powderCostPerRound(
-            powderPrice = powderPrice.toDoubleOrNull() ?: 0.0,
-            containerWeightLb = powderContainerWeight.toDoubleOrNull() ?: 0.0,
-            chargeWeightGr = chargeWeight.toDoubleOrNull() ?: 0.0,
-        )
-        primerCostPerRound = AmmoCostCalculator.primerCostPerRound(
-            primerPrice = primerPrice.toDoubleOrNull() ?: 0.0,
-            primerQuantity = primerQuantity.toIntOrNull() ?: 0,
-        )
-        bulletCostPerRound = AmmoCostCalculator.bulletCostPerRound(
-            bulletPrice = bulletPrice.toDoubleOrNull() ?: 0.0,
-            bulletQuantity = bulletQuantity.toIntOrNull() ?: 0,
-        )
-        brassCostPerRound = AmmoCostCalculator.brassCostPerRound(
-            brassPrice = brassPrice.toDoubleOrNull() ?: 0.0,
-            brassQuantity = brassQuantity.toIntOrNull() ?: 0,
-            reloadCount = brassReloadCount.toIntOrNull() ?: 0,
-        )
-        totalCostPerRound = AmmoCostCalculator.totalCostPerRound(
-            powderCost = powderCostPerRound,
-            primerCost = primerCostPerRound,
-            bulletCost = bulletCostPerRound,
-            brassCost = brassCostPerRound,
-        )
-        totalCostPer50 = AmmoCostCalculator.totalCostPer50(totalCostPerRound)
-        totalCostPer100 = AmmoCostCalculator.totalCostPer100(totalCostPerRound)
-    }
-
+@Composable
+private fun LoadCostCalculatorContent(
+    modifier: Modifier = Modifier,
+    uiState: LoadCostCalculatorUiState,
+    onPowderPriceChanged: (String) -> Unit,
+    onPowderContainerWeightChanged: (String) -> Unit,
+    onChargeWeightChanged: (String) -> Unit,
+    onPrimerPriceChanged: (String) -> Unit,
+    onPrimerQuantityChanged: (String) -> Unit,
+    onBulletPriceChanged: (String) -> Unit,
+    onBulletQuantityChanged: (String) -> Unit,
+    onBrassPriceChanged: (String) -> Unit,
+    onBrassQuantityChanged: (String) -> Unit,
+    onBrassReloadCountChanged: (String) -> Unit,
+    onCalculateClicked: () -> Unit,
+) {
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -87,70 +75,70 @@ fun LoadCostCalculatorScreen(modifier: Modifier = Modifier) {
 
         CostInputField(
             label = "Powder price",
-            value = powderPrice,
-            onValueChange = { powderPrice = it },
+            value = uiState.powderPrice,
+            onValueChange = onPowderPriceChanged,
             keyboardType = KeyboardType.Decimal,
         )
         CostInputField(
             label = "Powder container weight (lbs)",
-            value = powderContainerWeight,
-            onValueChange = { powderContainerWeight = it },
+            value = uiState.powderContainerWeight,
+            onValueChange = onPowderContainerWeightChanged,
             keyboardType = KeyboardType.Decimal,
         )
         CostInputField(
             label = "Charge weight (grains)",
-            value = chargeWeight,
-            onValueChange = { chargeWeight = it },
+            value = uiState.chargeWeight,
+            onValueChange = onChargeWeightChanged,
             keyboardType = KeyboardType.Decimal,
         )
 
         CostInputField(
             label = "Primer price",
-            value = primerPrice,
-            onValueChange = { primerPrice = it },
+            value = uiState.primerPrice,
+            onValueChange = onPrimerPriceChanged,
             keyboardType = KeyboardType.Decimal,
         )
         CostInputField(
             label = "Primer quantity",
-            value = primerQuantity,
-            onValueChange = { primerQuantity = it },
+            value = uiState.primerQuantity,
+            onValueChange = onPrimerQuantityChanged,
             keyboardType = KeyboardType.Number,
         )
 
         CostInputField(
             label = "Bullet price",
-            value = bulletPrice,
-            onValueChange = { bulletPrice = it },
+            value = uiState.bulletPrice,
+            onValueChange = onBulletPriceChanged,
             keyboardType = KeyboardType.Decimal,
         )
         CostInputField(
             label = "Bullet quantity",
-            value = bulletQuantity,
-            onValueChange = { bulletQuantity = it },
+            value = uiState.bulletQuantity,
+            onValueChange = onBulletQuantityChanged,
             keyboardType = KeyboardType.Number,
         )
 
         CostInputField(
             label = "Brass price",
-            value = brassPrice,
-            onValueChange = { brassPrice = it },
+            value = uiState.brassPrice,
+            onValueChange = onBrassPriceChanged,
             keyboardType = KeyboardType.Decimal,
         )
         CostInputField(
             label = "Brass quantity",
-            value = brassQuantity,
-            onValueChange = { brassQuantity = it },
+            value = uiState.brassQuantity,
+            onValueChange = onBrassQuantityChanged,
             keyboardType = KeyboardType.Number,
         )
         CostInputField(
             label = "Brass reload count",
-            value = brassReloadCount,
-            onValueChange = { brassReloadCount = it },
+            value = uiState.brassReloadCount,
+            onValueChange = onBrassReloadCountChanged,
             keyboardType = KeyboardType.Number,
         )
 
         Button(
-            onClick = ::calculate,
+            onClick = onCalculateClicked,
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text(text = "Calculate")
@@ -164,13 +152,13 @@ fun LoadCostCalculatorScreen(modifier: Modifier = Modifier) {
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                ResultRow("Powder cost per round", powderCostPerRound)
-                ResultRow("Primer cost per round", primerCostPerRound)
-                ResultRow("Bullet cost per round", bulletCostPerRound)
-                ResultRow("Brass cost per round", brassCostPerRound)
-                ResultRow("Total cost per round", totalCostPerRound)
-                ResultRow("Total cost per 50", totalCostPer50)
-                ResultRow("Total cost per 100", totalCostPer100)
+                ResultRow("Powder cost per round", uiState.result.powderCostPerRound)
+                ResultRow("Primer cost per round", uiState.result.primerCostPerRound)
+                ResultRow("Bullet cost per round", uiState.result.bulletCostPerRound)
+                ResultRow("Brass cost per round", uiState.result.brassCostPerRound)
+                ResultRow("Total cost per round", uiState.result.totalCostPerRound)
+                ResultRow("Total cost per 50", uiState.result.totalCostPer50)
+                ResultRow("Total cost per 100", uiState.result.totalCostPer100)
             }
         }
     }
@@ -206,6 +194,19 @@ private fun formatCurrency(value: Double): String = "$" + "%.4f".format(value)
 @Composable
 private fun LoadCostCalculatorScreenPreview() {
     ReloadCostCaluclatorTheme {
-        LoadCostCalculatorScreen()
+        LoadCostCalculatorContent(
+            uiState = LoadCostCalculatorUiState(),
+            onPowderPriceChanged = {},
+            onPowderContainerWeightChanged = {},
+            onChargeWeightChanged = {},
+            onPrimerPriceChanged = {},
+            onPrimerQuantityChanged = {},
+            onBulletPriceChanged = {},
+            onBulletQuantityChanged = {},
+            onBrassPriceChanged = {},
+            onBrassQuantityChanged = {},
+            onBrassReloadCountChanged = {},
+            onCalculateClicked = {},
+        )
     }
 }
