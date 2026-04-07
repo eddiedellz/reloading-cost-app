@@ -1,9 +1,7 @@
 package com.example.reloadcostcaluclator.model
 
-/**
- * Represents a powder product and its container pricing details.
- */
 data class Powder(
+    val id: Long = 0,
     val name: String,
     val pricePerContainer: Double,
     val containerWeightLb: Double,
