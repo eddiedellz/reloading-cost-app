@@ -1,9 +1,7 @@
 package com.example.reloadcostcaluclator.model
 
-/**
- * Represents brass purchase details and expected number of reloads.
- */
 data class Brass(
+    val id: Long = 0,
     val name: String,
     val price: Double,
     val quantity: Int,
