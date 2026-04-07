@@ -1,8 +1,5 @@
 package com.example.reloadcostcaluclator.util
 
-/**
- * Utility functions for ammunition cost calculations.
- */
 object AmmoCostCalculator {
 
     private const val GRAINS_PER_POUND = 7000.0
@@ -12,7 +9,7 @@ object AmmoCostCalculator {
         containerWeightLb: Double,
         chargeWeightGr: Double,
     ): Double {
-        if (!powderPrice.isValidPositive() || !containerWeightLb.isValidPositive() || !chargeWeightGr.isValidPositive()) {
+        if (!powderPrice.isPositiveFinite() || !containerWeightLb.isPositiveFinite() || !chargeWeightGr.isPositiveFinite()) {
             return 0.0
         }
 
@@ -26,19 +23,19 @@ object AmmoCostCalculator {
     }
 
     fun primerCostPerRound(primerPrice: Double, primerQuantity: Int): Double {
-        if (!primerPrice.isValidPositive() || primerQuantity <= 0) return 0.0
-        return primerPrice / primerQuantity.toDouble()
+        if (!primerPrice.isPositiveFinite() || primerQuantity <= 0) return 0.0
+        return primerPrice / primerQuantity
     }
 
     fun bulletCostPerRound(bulletPrice: Double, bulletQuantity: Int): Double {
-        if (!bulletPrice.isValidPositive() || bulletQuantity <= 0) return 0.0
-        return bulletPrice / bulletQuantity.toDouble()
+        if (!bulletPrice.isPositiveFinite() || bulletQuantity <= 0) return 0.0
+        return bulletPrice / bulletQuantity
     }
 
     fun brassCostPerRound(brassPrice: Double, brassQuantity: Int, reloadCount: Int): Double {
-        if (!brassPrice.isValidPositive() || brassQuantity <= 0 || reloadCount <= 0) return 0.0
+        if (!brassPrice.isPositiveFinite() || brassQuantity <= 0 || reloadCount <= 0) return 0.0
 
-        val totalUses = brassQuantity.toDouble() * reloadCount.toDouble()
+        val totalUses = brassQuantity.toDouble() * reloadCount
         if (totalUses <= 0.0) return 0.0
 
         return brassPrice / totalUses
@@ -50,24 +47,28 @@ object AmmoCostCalculator {
         bulletCost: Double,
         brassCost: Double,
     ): Double {
-        if (!powderCost.isValidNonNegative() || !primerCost.isValidNonNegative() || !bulletCost.isValidNonNegative() || !brassCost.isValidNonNegative()) {
+        if (!powderCost.isNonNegativeFinite() ||
+            !primerCost.isNonNegativeFinite() ||
+            !bulletCost.isNonNegativeFinite() ||
+            !brassCost.isNonNegativeFinite()
+        ) {
             return 0.0
         }
 
         return powderCost + primerCost + bulletCost + brassCost
     }
 
-    fun totalCostPer50(total: Double): Double {
-        if (!total.isValidNonNegative()) return 0.0
-        return total * 50.0
+    fun totalCostPer50(totalCostPerRound: Double): Double {
+        if (!totalCostPerRound.isNonNegativeFinite()) return 0.0
+        return totalCostPerRound * 50
     }
 
-    fun totalCostPer100(total: Double): Double {
-        if (!total.isValidNonNegative()) return 0.0
-        return total * 100.0
+    fun totalCostPer100(totalCostPerRound: Double): Double {
+        if (!totalCostPerRound.isNonNegativeFinite()) return 0.0
+        return totalCostPerRound * 100
     }
 
-    private fun Double.isValidPositive(): Boolean = this.isFinite() && this > 0.0
+    private fun Double.isPositiveFinite(): Boolean = isFinite() && this > 0.0
 
-    private fun Double.isValidNonNegative(): Boolean = this.isFinite() && this >= 0.0
+    private fun Double.isNonNegativeFinite(): Boolean = isFinite() && this >= 0.0
 }
