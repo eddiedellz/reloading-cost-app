@@ -1,4 +1,4 @@
-package com.example.reloadcostcaluclator.models
+package com.example.reloadcostcaluclator.model
 
 /**
  * Represents brass purchase details and expected number of reloads.

@@ -1,4 +1,4 @@
-package com.example.reloadcostcaluclator.ui
+package com.example.reloadcostcaluclator.viewmodel
 
 import androidx.lifecycle.ViewModel
 import com.example.reloadcostcaluclator.util.AmmoCostCalculator

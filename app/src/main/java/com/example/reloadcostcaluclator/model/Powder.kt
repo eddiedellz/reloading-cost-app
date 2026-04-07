@@ -1,4 +1,4 @@
-package com.example.reloadcostcaluclator.models
+package com.example.reloadcostcaluclator.model
 
 /**
  * Represents a powder product and its container pricing details.
