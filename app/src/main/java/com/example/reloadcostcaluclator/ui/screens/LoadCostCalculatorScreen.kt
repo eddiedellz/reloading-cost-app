@@ -22,6 +22,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.reloadcostcaluclator.ui.components.DecimalNumberInputField
 import com.example.reloadcostcaluclator.ui.components.IntegerNumberInputField
+import com.example.reloadcostcaluclator.ui.components.TextInputField
 import com.example.reloadcostcaluclator.ui.theme.ReloadCostCaluclatorTheme
 import com.example.reloadcostcaluclator.util.CurrencyFormatters
 import com.example.reloadcostcaluclator.viewmodel.LoadCostCalculatorUiState
@@ -37,6 +38,7 @@ fun LoadCostCalculatorScreen(
     LoadCostCalculatorScreenContent(
         modifier = modifier,
         uiState = uiState.value,
+        onLoadNameChanged = viewModel::onLoadNameChanged,
         onPowderPriceChanged = viewModel::onPowderPriceChanged,
         onPowderContainerWeightChanged = viewModel::onPowderContainerWeightChanged,
         onChargeWeightChanged = viewModel::onChargeWeightChanged,
@@ -54,6 +56,7 @@ fun LoadCostCalculatorScreen(
 @Composable
 private fun LoadCostCalculatorScreenContent(
     uiState: LoadCostCalculatorUiState,
+    onLoadNameChanged: (String) -> Unit,
     onPowderPriceChanged: (String) -> Unit,
     onPowderContainerWeightChanged: (String) -> Unit,
     onChargeWeightChanged: (String) -> Unit,
@@ -96,6 +99,11 @@ private fun LoadCostCalculatorScreenContent(
                         style = MaterialTheme.typography.titleMedium,
                     )
 
+                    TextInputField(
+                        label = "Load name",
+                        value = uiState.loadName,
+                        onValueChange = onLoadNameChanged,
+                    )
                     DecimalNumberInputField(
                         label = "Powder price",
                         value = uiState.powderPrice,
@@ -198,6 +206,7 @@ private fun LoadCostCalculatorScreenPreview() {
     ReloadCostCaluclatorTheme {
         LoadCostCalculatorScreenContent(
             uiState = LoadCostCalculatorUiState(),
+            onLoadNameChanged = {},
             onPowderPriceChanged = {},
             onPowderContainerWeightChanged = {},
             onChargeWeightChanged = {},
