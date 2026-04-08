@@ -8,6 +8,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.reloadcostcaluclator.data.di.AppContainer
 import com.example.reloadcostcaluclator.ui.screens.HomeScreen
+import com.example.reloadcostcaluclator.ui.screens.LoadCostCalculatorScreen
 import com.example.reloadcostcaluclator.ui.screens.components.AddEditBrassScreen
 import com.example.reloadcostcaluclator.ui.screens.components.AddEditBulletScreen
 import com.example.reloadcostcaluclator.ui.screens.components.AddEditPowderScreen
@@ -37,7 +38,11 @@ fun AppNavHost(
                 onBulletsClick = { navController.navigate(Routes.BULLET_LIST) },
                 onBrassClick = { navController.navigate(Routes.BRASS_LIST) },
                 onLoadsClick = { navController.navigate(Routes.LOADS) },
+                onCalculatorClick = { navController.navigate(Routes.CALCULATOR) },
             )
+        }
+        composable(Routes.CALCULATOR) {
+            LoadCostCalculatorScreen()
         }
         composable(Routes.LOADS) {
             LoadRecipeListScreen(
