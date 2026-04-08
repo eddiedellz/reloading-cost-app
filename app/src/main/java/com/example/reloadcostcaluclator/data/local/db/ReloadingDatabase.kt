@@ -15,6 +15,8 @@ import com.example.reloadcostcaluclator.data.local.entity.BrassEntity
 import com.example.reloadcostcaluclator.data.local.entity.BulletEntity
 import com.example.reloadcostcaluclator.data.local.entity.ComponentPriceHistoryEntity
 import com.example.reloadcostcaluclator.data.local.entity.ComponentUpdateMode
+import com.example.reloadcostcaluclator.data.local.entity.ExtraChargeAllocationMethod
+import com.example.reloadcostcaluclator.data.local.entity.ExtraChargeMode
 import com.example.reloadcostcaluclator.data.local.entity.LoadRecipeEntity
 import com.example.reloadcostcaluclator.data.local.entity.PowderEntity
 import com.example.reloadcostcaluclator.data.local.entity.PrimerEntity
@@ -32,7 +34,7 @@ import com.example.reloadcostcaluclator.data.local.entity.PurchaseOrderItemEntit
         PurchaseOrderItemEntity::class,
         ComponentPriceHistoryEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = false,
 )
 abstract class ReloadingDatabase : RoomDatabase() {
@@ -111,6 +113,66 @@ object ReloadingDatabaseMigrations {
             database.execSQL(
                 "CREATE INDEX IF NOT EXISTS index_component_price_history_componentType_componentName ON component_price_history(componentType, componentName)",
             )
+        }
+    }
+
+    val MIGRATION_3_4 = object : Migration(3, 4) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            val defaultChargeMode = ExtraChargeMode.MANUAL_EXTRA_CHARGES.name
+            val defaultAllocation = ExtraChargeAllocationMethod.PROPORTIONAL_BY_LINE_SUBTOTAL.name
+            database.execSQL("ALTER TABLE purchase_orders ADD COLUMN extraChargeMode TEXT NOT NULL DEFAULT '$defaultChargeMode'")
+            database.execSQL("ALTER TABLE purchase_orders ADD COLUMN allocationMethod TEXT NOT NULL DEFAULT '$defaultAllocation'")
+            database.execSQL("ALTER TABLE purchase_orders ADD COLUMN orderTotal REAL NOT NULL DEFAULT 0")
+            database.execSQL("UPDATE purchase_orders SET orderTotal = grandTotal")
+
+            database.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS purchase_order_items_new (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    orderId INTEGER NOT NULL,
+                    componentType TEXT NOT NULL,
+                    itemName TEXT NOT NULL,
+                    unitPrice REAL NOT NULL,
+                    packageQuantity REAL NOT NULL,
+                    purchaseQuantity REAL NOT NULL,
+                    lineSubtotal REAL NOT NULL,
+                    allocatedExtraCharge REAL NOT NULL,
+                    originalUnitCost REAL NOT NULL,
+                    adjustedUnitCost REAL NOT NULL,
+                    adjustedLineTotal REAL NOT NULL,
+                    landedCost REAL NOT NULL,
+                    FOREIGN KEY(orderId) REFERENCES purchase_orders(id) ON DELETE CASCADE
+                )
+                """.trimIndent(),
+            )
+
+            database.execSQL(
+                """
+                INSERT INTO purchase_order_items_new (
+                    id, orderId, componentType, itemName, unitPrice, packageQuantity, purchaseQuantity,
+                    lineSubtotal, allocatedExtraCharge, originalUnitCost, adjustedUnitCost, adjustedLineTotal, landedCost
+                )
+                SELECT
+                    id,
+                    orderId,
+                    componentType,
+                    itemName,
+                    basePrice,
+                    quantityOrPackageSize,
+                    1.0,
+                    basePrice,
+                    allocatedExtraCharge,
+                    basePrice,
+                    landedCost,
+                    landedCost,
+                    landedCost
+                FROM purchase_order_items
+                """.trimIndent(),
+            )
+
+            database.execSQL("DROP TABLE purchase_order_items")
+            database.execSQL("ALTER TABLE purchase_order_items_new RENAME TO purchase_order_items")
+            database.execSQL("CREATE INDEX IF NOT EXISTS index_purchase_order_items_orderId ON purchase_order_items(orderId)")
         }
     }
 }

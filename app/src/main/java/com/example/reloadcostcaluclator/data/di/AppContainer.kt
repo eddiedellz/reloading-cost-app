@@ -19,7 +19,11 @@ class AppContainer(context: Context) {
             ReloadingDatabase::class.java,
             "reloading_database",
         )
-            .addMigrations(ReloadingDatabaseMigrations.MIGRATION_1_2, ReloadingDatabaseMigrations.MIGRATION_2_3)
+            .addMigrations(
+                ReloadingDatabaseMigrations.MIGRATION_1_2,
+                ReloadingDatabaseMigrations.MIGRATION_2_3,
+                ReloadingDatabaseMigrations.MIGRATION_3_4,
+            )
             .build()
     }
 
