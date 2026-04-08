@@ -2,10 +2,17 @@ package com.example.reloadcostcaluclator.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
+// Premium dark dashboard palette.
+val NightBlack = Color(0xFF0C1016)
+val CharcoalBlue = Color(0xFF141B24)
+val SlateSurface = Color(0xFF1B2531)
+val ElevatedSlate = Color(0xFF212E3D)
 
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
+// Muted brass/gold accent tones.
+val MutedBrass = Color(0xFFC0A36A)
+val MutedBrassContainer = Color(0xFF3A3220)
+
+// Readable neutral foreground colors.
+val SoftWhite = Color(0xFFE8EDF3)
+val CoolGray = Color(0xFFBCC6D3)
+val DeepInk = Color(0xFF0B0F14)
