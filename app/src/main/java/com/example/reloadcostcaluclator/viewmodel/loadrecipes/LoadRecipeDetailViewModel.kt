@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.reloadcostcaluclator.data.local.entity.BrassEntity
 import com.example.reloadcostcaluclator.data.local.entity.BulletEntity
+import com.example.reloadcostcaluclator.data.local.entity.FactoryAmmoReferenceEntity
 import com.example.reloadcostcaluclator.data.local.entity.LoadRecipeEntity
 import com.example.reloadcostcaluclator.data.local.entity.PowderEntity
 import com.example.reloadcostcaluclator.data.local.entity.PrimerEntity
@@ -47,22 +48,51 @@ class LoadRecipeDetailViewModel(
     factoryAmmoReferenceRepository: FactoryAmmoReferenceRepository,
 ) : ViewModel() {
 
+    private data class RecipeComponentData(
+        val recipe: LoadRecipeEntity?,
+        val powders: List<PowderEntity>,
+        val primers: List<PrimerEntity>,
+    )
+
+    private data class ReferenceComponentData(
+        val bullets: List<BulletEntity>,
+        val brassList: List<BrassEntity>,
+        val factoryReferences: List<FactoryAmmoReferenceEntity>,
+    )
+
     val uiState: StateFlow<LoadRecipeDetailUiState> = combine(
-        loadRecipeRepository.getById(recipeId),
-        powderRepository.getAll(),
-        primerRepository.getAll(),
-        bulletRepository.getAll(),
-        brassRepository.getAll(),
-        factoryAmmoReferenceRepository.getAll(),
-    ) { recipe, powders, primers, bullets, brassList, factoryReferences ->
+        combine(
+            loadRecipeRepository.getById(recipeId),
+            powderRepository.getAll(),
+            primerRepository.getAll(),
+        ) { recipe, powders, primers ->
+            RecipeComponentData(
+                recipe = recipe,
+                powders = powders,
+                primers = primers,
+            )
+        },
+        combine(
+            bulletRepository.getAll(),
+            brassRepository.getAll(),
+            factoryAmmoReferenceRepository.getAll(),
+        ) { bullets, brassList, factoryReferences ->
+            ReferenceComponentData(
+                bullets = bullets,
+                brassList = brassList,
+                factoryReferences = factoryReferences,
+            )
+        },
+    ) { recipeData, referenceData ->
+        val recipe = recipeData.recipe
         if (recipe == null) {
             return@combine LoadRecipeDetailUiState()
         }
 
-        val powder = powders.firstOrNull { it.id == recipe.powderId }
-        val primer = primers.firstOrNull { it.id == recipe.primerId }
-        val bullet = bullets.firstOrNull { it.id == recipe.bulletId }
-        val brass = brassList.firstOrNull { it.id == recipe.brassId }
+        val powder = recipeData.powders.firstOrNull { it.id == recipe.powderId }
+        val primer = recipeData.primers.firstOrNull { it.id == recipe.primerId }
+        val bullet = referenceData.bullets.firstOrNull { it.id == recipe.bulletId }
+        val brass = referenceData.brassList.firstOrNull { it.id == recipe.brassId }
 
         val powderCostPerRound = AmmoCostCalculator.powderCostPerRound(
             powderPrice = powder?.pricePaid ?: 0.0,
@@ -95,7 +125,7 @@ class LoadRecipeDetailViewModel(
             loadGrain = bullet?.grain,
             loadBulletType = bullet?.bulletType,
             loadCostPerRound = totalCostPerRound,
-            references = factoryReferences,
+            references = referenceData.factoryReferences,
         )
 
         LoadRecipeDetailUiState(
