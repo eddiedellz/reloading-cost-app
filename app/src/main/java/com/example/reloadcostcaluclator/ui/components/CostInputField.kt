@@ -9,20 +9,51 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 
 @Composable
-fun CostInputField(
+fun DecimalNumberInputField(
     label: String,
     value: String,
     onValueChange: (String) -> Unit,
-    isDecimal: Boolean = true,
+    modifier: Modifier = Modifier,
+) {
+    NumberInputField(
+        label = label,
+        value = value,
+        onValueChange = onValueChange,
+        keyboardType = KeyboardType.Decimal,
+        modifier = modifier,
+    )
+}
+
+@Composable
+fun IntegerNumberInputField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    NumberInputField(
+        label = label,
+        value = value,
+        onValueChange = onValueChange,
+        keyboardType = KeyboardType.Number,
+        modifier = modifier,
+    )
+}
+
+@Composable
+private fun NumberInputField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    keyboardType: KeyboardType,
+    modifier: Modifier = Modifier,
 ) {
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },
-        keyboardOptions = KeyboardOptions(
-            keyboardType = if (isDecimal) KeyboardType.Decimal else KeyboardType.Number,
-        ),
-        modifier = Modifier.fillMaxWidth(),
+        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+        modifier = modifier.fillMaxWidth(),
         singleLine = true,
     )
 }
