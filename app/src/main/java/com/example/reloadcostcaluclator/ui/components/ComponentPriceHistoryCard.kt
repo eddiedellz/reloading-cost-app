@@ -44,8 +44,8 @@ fun ComponentPriceHistoryCard(
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text("Price History")
-            Text("Weighted avg cost/unit: ${CurrencyFormatters.currency(summary!!.weightedAverageCostPerUnit)}")
-            Text("Latest landed cost: ${CurrencyFormatters.currency(summary!!.latestLandedCost)}")
+            Text("Weighted avg cost/unit: ${CurrencyFormatters.formatUsd(summary!!.weightedAverageCostPerUnit)}")
+            Text("Latest landed cost: ${CurrencyFormatters.formatUsd(summary!!.latestLandedCost)}")
 
             history.take(8).forEach {
                 val date = Instant.ofEpochMilli(it.purchaseDateEpochMillis)
@@ -54,7 +54,7 @@ fun ComponentPriceHistoryCard(
                     .format(DateTimeFormatter.ISO_LOCAL_DATE)
                 val sign = if (it.previousDifference >= 0) "+" else "-"
                 Text(
-                    "$date • Landed ${CurrencyFormatters.currency(it.landedCost)} • Δ vs prev: $sign${CurrencyFormatters.currency(kotlin.math.abs(it.previousDifference))}",
+                    "$date • Landed ${CurrencyFormatters.formatUsd(it.landedCost)} • Δ vs prev: $sign${CurrencyFormatters.formatUsd(kotlin.math.abs(it.previousDifference))}",
                 )
             }
         }

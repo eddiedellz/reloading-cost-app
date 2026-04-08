@@ -5,7 +5,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.reloadcostcaluclator.data.local.entity.BrassEntity
 import com.example.reloadcostcaluclator.data.local.entity.BulletEntity
-import com.example.reloadcostcaluclator.data.local.entity.FactoryAmmoReferenceEntity
 import com.example.reloadcostcaluclator.data.local.entity.LoadRecipeEntity
 import com.example.reloadcostcaluclator.data.local.entity.PowderEntity
 import com.example.reloadcostcaluclator.data.local.entity.PrimerEntity
@@ -16,6 +15,7 @@ import com.example.reloadcostcaluclator.data.repository.LoadRecipeRepository
 import com.example.reloadcostcaluclator.data.repository.PowderRepository
 import com.example.reloadcostcaluclator.data.repository.PrimerRepository
 import com.example.reloadcostcaluclator.model.FactoryAmmoComparison
+import com.example.reloadcostcaluclator.model.FactoryAmmoReference
 import com.example.reloadcostcaluclator.util.AmmoCostCalculator
 import com.example.reloadcostcaluclator.util.FactoryAmmoComparisonCalculator
 import kotlinx.coroutines.flow.SharingStarted
@@ -57,7 +57,7 @@ class LoadRecipeDetailViewModel(
     private data class ReferenceComponentData(
         val bullets: List<BulletEntity>,
         val brassList: List<BrassEntity>,
-        val factoryReferences: List<FactoryAmmoReferenceEntity>,
+        val factoryReferences: List<FactoryAmmoReference>,
     )
 
     val uiState: StateFlow<LoadRecipeDetailUiState> = combine(
