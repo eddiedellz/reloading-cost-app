@@ -31,7 +31,6 @@ data class LoadRecipeDetailUiState(
     val brassCostPerRound: Double = 0.0,
     val totalCostPerRound: Double = 0.0,
     val totalCostPer50: Double = 0.0,
-    val totalCostPer100: Double = 0.0,
 )
 
 class LoadRecipeDetailViewModel(
@@ -97,7 +96,6 @@ class LoadRecipeDetailViewModel(
             brassCostPerRound = brassCostPerRound,
             totalCostPerRound = totalCostPerRound,
             totalCostPer50 = AmmoCostCalculator.totalCostPer50(totalCostPerRound),
-            totalCostPer100 = AmmoCostCalculator.totalCostPer100(totalCostPerRound),
         )
     }.stateIn(
         scope = viewModelScope,

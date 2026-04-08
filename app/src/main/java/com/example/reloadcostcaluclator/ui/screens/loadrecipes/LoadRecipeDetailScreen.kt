@@ -81,6 +81,7 @@ fun LoadRecipeDetailScreen(
 
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Load name: ${recipe.name}")
                     Text("Caliber: ${recipe.caliber}")
                     Text("Powder: ${uiState.value.powder?.name ?: "Not set"}")
                     Text("Charge weight: ${recipe.chargeWeightGr} gr")
@@ -101,7 +102,6 @@ fun LoadRecipeDetailScreen(
                     Text("Brass cost / round: ${CurrencyFormatters.formatUsd(uiState.value.brassCostPerRound)}")
                     Text("Total cost / round: ${CurrencyFormatters.formatUsd(uiState.value.totalCostPerRound)}")
                     Text("Total cost / 50: ${CurrencyFormatters.formatUsd(uiState.value.totalCostPer50)}")
-                    Text("Total cost / 100: ${CurrencyFormatters.formatUsd(uiState.value.totalCostPer100)}")
                 }
             }
         }

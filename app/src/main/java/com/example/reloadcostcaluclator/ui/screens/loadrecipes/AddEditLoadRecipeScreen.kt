@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -38,6 +39,7 @@ import com.example.reloadcostcaluclator.data.repository.PowderRepository
 import com.example.reloadcostcaluclator.data.repository.PrimerRepository
 import com.example.reloadcostcaluclator.ui.components.DecimalNumberInputField
 import com.example.reloadcostcaluclator.ui.components.TextInputField
+import com.example.reloadcostcaluclator.util.CurrencyFormatters
 import com.example.reloadcostcaluclator.viewmodel.loadrecipes.AddEditLoadRecipeViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -68,6 +70,7 @@ fun AddEditLoadRecipeScreen(
     val primers = viewModel.primers.collectAsStateWithLifecycle()
     val bullets = viewModel.bullets.collectAsStateWithLifecycle()
     val brass = viewModel.brass.collectAsStateWithLifecycle()
+    val costPreview = viewModel.costPreview.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -141,6 +144,20 @@ fun AddEditLoadRecipeScreen(
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3,
             )
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text("Live Cost Preview")
+                    Text("Powder cost / round: ${CurrencyFormatters.formatUsd(costPreview.value.powderCostPerRound)}")
+                    Text("Primer cost / round: ${CurrencyFormatters.formatUsd(costPreview.value.primerCostPerRound)}")
+                    Text("Bullet cost / round: ${CurrencyFormatters.formatUsd(costPreview.value.bulletCostPerRound)}")
+                    Text("Brass cost / round: ${CurrencyFormatters.formatUsd(costPreview.value.brassCostPerRound)}")
+                    Text("Total cost / round: ${CurrencyFormatters.formatUsd(costPreview.value.totalCostPerRound)}")
+                    Text("Total cost / 50: ${CurrencyFormatters.formatUsd(costPreview.value.totalCostPer50)}")
+                }
+            }
             uiState.value.errorMessage?.let {
                 Text(text = it)
             }

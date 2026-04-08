@@ -13,10 +13,12 @@ import com.example.reloadcostcaluclator.data.repository.BulletRepository
 import com.example.reloadcostcaluclator.data.repository.LoadRecipeRepository
 import com.example.reloadcostcaluclator.data.repository.PowderRepository
 import com.example.reloadcostcaluclator.data.repository.PrimerRepository
+import com.example.reloadcostcaluclator.util.AmmoCostCalculator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -33,6 +35,15 @@ data class AddEditLoadRecipeUiState(
     val brassId: Long? = null,
     val notes: String = "",
     val errorMessage: String? = null,
+)
+
+data class LoadRecipeCostPreview(
+    val powderCostPerRound: Double = 0.0,
+    val primerCostPerRound: Double = 0.0,
+    val bulletCostPerRound: Double = 0.0,
+    val brassCostPerRound: Double = 0.0,
+    val totalCostPerRound: Double = 0.0,
+    val totalCostPer50: Double = 0.0,
 )
 
 class AddEditLoadRecipeViewModel(
@@ -67,6 +78,59 @@ class AddEditLoadRecipeViewModel(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = emptyList(),
+    )
+
+    val costPreview: StateFlow<LoadRecipeCostPreview> = combine(
+        _uiState,
+        powders,
+        primers,
+        bullets,
+        brass,
+    ) { state, powderList, primerList, bulletList, brassList ->
+        val chargeWeight = state.chargeWeightGr.toDoubleOrNull() ?: 0.0
+
+        val selectedPowder = powderList.firstOrNull { it.id == state.powderId }
+        val selectedPrimer = primerList.firstOrNull { it.id == state.primerId }
+        val selectedBullet = bulletList.firstOrNull { it.id == state.bulletId }
+        val selectedBrass = brassList.firstOrNull { it.id == state.brassId }
+
+        val powderCostPerRound = AmmoCostCalculator.powderCostPerRound(
+            powderPrice = selectedPowder?.pricePaid ?: 0.0,
+            containerWeightLb = selectedPowder?.containerWeightLb ?: 0.0,
+            chargeWeightGr = chargeWeight,
+        )
+        val primerCostPerRound = AmmoCostCalculator.primerCostPerRound(
+            primerPrice = selectedPrimer?.pricePaid ?: 0.0,
+            primerQuantity = selectedPrimer?.quantity ?: 0,
+        )
+        val bulletCostPerRound = AmmoCostCalculator.bulletCostPerRound(
+            bulletPrice = selectedBullet?.pricePaid ?: 0.0,
+            bulletQuantity = selectedBullet?.quantity ?: 0,
+        )
+        val brassCostPerRound = AmmoCostCalculator.brassCostPerRound(
+            brassPrice = selectedBrass?.pricePaid ?: 0.0,
+            brassQuantity = selectedBrass?.quantity ?: 0,
+            reloadCount = selectedBrass?.reloadCount ?: 0,
+        )
+        val totalCostPerRound = AmmoCostCalculator.totalCostPerRound(
+            powderCost = powderCostPerRound,
+            primerCost = primerCostPerRound,
+            bulletCost = bulletCostPerRound,
+            brassCost = brassCostPerRound,
+        )
+
+        LoadRecipeCostPreview(
+            powderCostPerRound = powderCostPerRound,
+            primerCostPerRound = primerCostPerRound,
+            bulletCostPerRound = bulletCostPerRound,
+            brassCostPerRound = brassCostPerRound,
+            totalCostPerRound = totalCostPerRound,
+            totalCostPer50 = AmmoCostCalculator.totalCostPer50(totalCostPerRound),
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = LoadRecipeCostPreview(),
     )
 
     fun load(itemId: Long?) {
