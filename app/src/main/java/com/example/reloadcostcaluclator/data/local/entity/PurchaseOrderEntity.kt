@@ -8,6 +8,9 @@ data class PurchaseOrderEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val purchaseDateEpochMillis: Long,
+    val extraChargeMode: String,
+    val allocationMethod: String,
+    val orderTotal: Double,
     val extraChargesTotal: Double,
     val subtotal: Double,
     val grandTotal: Double,

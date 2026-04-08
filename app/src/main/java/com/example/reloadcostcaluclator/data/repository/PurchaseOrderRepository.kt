@@ -13,6 +13,8 @@ import com.example.reloadcostcaluclator.data.local.entity.BulletEntity
 import com.example.reloadcostcaluclator.data.local.entity.ComponentPriceHistoryEntity
 import com.example.reloadcostcaluclator.data.local.entity.ComponentType
 import com.example.reloadcostcaluclator.data.local.entity.ComponentUpdateMode
+import com.example.reloadcostcaluclator.data.local.entity.ExtraChargeAllocationMethod
+import com.example.reloadcostcaluclator.data.local.entity.ExtraChargeMode
 import com.example.reloadcostcaluclator.data.local.entity.PowderEntity
 import com.example.reloadcostcaluclator.data.local.entity.PrimerEntity
 import com.example.reloadcostcaluclator.data.local.entity.PurchaseOrderEntity
@@ -23,8 +25,14 @@ import kotlin.math.max
 data class CreateOrderItemInput(
     val componentType: ComponentType,
     val itemName: String,
-    val quantityOrPackageSize: Double,
-    val basePrice: Double,
+    val unitPrice: Double,
+    val packageQuantity: Double,
+    val purchaseQuantity: Double,
+    val lineSubtotal: Double,
+    val allocatedExtraCharge: Double,
+    val originalUnitCost: Double,
+    val adjustedUnitCost: Double,
+    val adjustedLineTotal: Double,
     val updateMode: ComponentUpdateMode,
 )
 
@@ -51,17 +59,22 @@ class PurchaseOrderRepository(
 ) {
     suspend fun createOrder(
         purchaseDateEpochMillis: Long,
+        extraChargeMode: ExtraChargeMode,
+        allocationMethod: ExtraChargeAllocationMethod,
+        orderTotal: Double,
         extraChargesTotal: Double,
+        subtotal: Double,
         items: List<CreateOrderItemInput>,
     ) {
-        if (items.isEmpty()) return
-        val subtotal = items.sumOf { it.basePrice }
-        if (subtotal <= 0.0) return
+        if (items.isEmpty() || subtotal <= 0.0) return
 
         database.withTransaction {
             val orderId = purchaseOrderDao.insertOrder(
                 PurchaseOrderEntity(
                     purchaseDateEpochMillis = purchaseDateEpochMillis,
+                    extraChargeMode = extraChargeMode.name,
+                    allocationMethod = allocationMethod.name,
+                    orderTotal = orderTotal,
                     extraChargesTotal = extraChargesTotal,
                     subtotal = subtotal,
                     grandTotal = subtotal + extraChargesTotal,
@@ -69,16 +82,19 @@ class PurchaseOrderRepository(
             )
 
             val orderItemEntities = items.map {
-                val ratio = if (subtotal == 0.0) 0.0 else it.basePrice / subtotal
-                val allocatedExtra = extraChargesTotal * ratio
                 PurchaseOrderItemEntity(
                     orderId = orderId,
                     componentType = it.componentType.name,
                     itemName = it.itemName.trim(),
-                    quantityOrPackageSize = it.quantityOrPackageSize,
-                    basePrice = it.basePrice,
-                    allocatedExtraCharge = allocatedExtra,
-                    landedCost = it.basePrice + allocatedExtra,
+                    unitPrice = it.unitPrice,
+                    packageQuantity = it.packageQuantity,
+                    purchaseQuantity = it.purchaseQuantity,
+                    lineSubtotal = it.lineSubtotal,
+                    allocatedExtraCharge = it.allocatedExtraCharge,
+                    originalUnitCost = it.originalUnitCost,
+                    adjustedUnitCost = it.adjustedUnitCost,
+                    adjustedLineTotal = it.adjustedLineTotal,
+                    landedCost = it.adjustedLineTotal,
                 )
             }
             val orderItemIds = purchaseOrderDao.insertOrderItems(orderItemEntities)
@@ -91,22 +107,21 @@ class PurchaseOrderRepository(
                     purchaseDateEpochMillis = purchaseDateEpochMillis,
                     orderId = orderId,
                     orderItemId = itemId,
-                    quantity = item.quantityOrPackageSize,
+                    quantity = item.packageQuantity * item.purchaseQuantity,
                     landedCost = item.landedCost,
                 )
             }
             priceHistoryDao.insertAll(historyRecords)
 
-            items.zip(orderItemEntities).forEachIndexed { index, (input, itemEntity) ->
-                if (input.updateMode == ComponentUpdateMode.HISTORY_ONLY) return@forEachIndexed
+            items.zip(orderItemEntities).forEach { (input, itemEntity) ->
+                if (input.updateMode == ComponentUpdateMode.HISTORY_ONLY) return@forEach
                 applyComponentUpdate(
                     input = input,
                     landedCost = itemEntity.landedCost,
-                    quantity = max(0.000001, itemEntity.quantityOrPackageSize),
+                    quantity = max(0.000001, itemEntity.packageQuantity * itemEntity.purchaseQuantity),
                 )
             }
 
-            // Backfill componentId for records after component upserts.
             val mapped = historyRecords.map { history ->
                 history.copy(componentId = findComponentId(ComponentType.valueOf(history.componentType), history.componentName))
             }
@@ -155,11 +170,13 @@ class PurchaseOrderRepository(
                         containerWeightLb = quantity,
                         pricingStrategy = input.updateMode.name,
                     )
+
                     input.updateMode == ComponentUpdateMode.LATEST_PRICE -> existing.copy(
                         pricePaid = landedCost,
                         containerWeightLb = quantity,
                         pricingStrategy = input.updateMode.name,
                     )
+
                     else -> {
                         val combinedCost = existing.pricePaid + landedCost
                         val combinedQty = existing.containerWeightLb + quantity
@@ -183,11 +200,13 @@ class PurchaseOrderRepository(
                         quantity = quantityInt,
                         pricingStrategy = input.updateMode.name,
                     )
+
                     input.updateMode == ComponentUpdateMode.LATEST_PRICE -> existing.copy(
                         pricePaid = landedCost,
                         quantity = quantityInt,
                         pricingStrategy = input.updateMode.name,
                     )
+
                     else -> existing.copy(
                         pricePaid = existing.pricePaid + landedCost,
                         quantity = existing.quantity + quantityInt,
@@ -209,11 +228,13 @@ class PurchaseOrderRepository(
                         quantity = quantityInt,
                         pricingStrategy = input.updateMode.name,
                     )
+
                     input.updateMode == ComponentUpdateMode.LATEST_PRICE -> existing.copy(
                         pricePaid = landedCost,
                         quantity = quantityInt,
                         pricingStrategy = input.updateMode.name,
                     )
+
                     else -> existing.copy(
                         pricePaid = existing.pricePaid + landedCost,
                         quantity = existing.quantity + quantityInt,
@@ -234,11 +255,13 @@ class PurchaseOrderRepository(
                         reloadCount = 1,
                         pricingStrategy = input.updateMode.name,
                     )
+
                     input.updateMode == ComponentUpdateMode.LATEST_PRICE -> existing.copy(
                         pricePaid = landedCost,
                         quantity = quantityInt,
                         pricingStrategy = input.updateMode.name,
                     )
+
                     else -> existing.copy(
                         pricePaid = existing.pricePaid + landedCost,
                         quantity = existing.quantity + quantityInt,

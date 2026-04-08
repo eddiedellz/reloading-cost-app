@@ -12,3 +12,13 @@ enum class ComponentUpdateMode {
     WEIGHTED_AVERAGE,
     HISTORY_ONLY,
 }
+
+enum class ExtraChargeMode {
+    MANUAL_EXTRA_CHARGES,
+    USE_ORDER_TOTAL,
+}
+
+enum class ExtraChargeAllocationMethod {
+    PROPORTIONAL_BY_LINE_SUBTOTAL,
+    EVEN_BY_QUANTITY,
+}
