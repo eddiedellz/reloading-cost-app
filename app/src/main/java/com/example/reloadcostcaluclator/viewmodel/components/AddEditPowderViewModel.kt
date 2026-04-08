@@ -47,18 +47,20 @@ class AddEditPowderViewModel(
     fun save(onSaved: () -> Unit) {
         val state = _uiState.value
         val name = state.name.trim()
-        val price = state.pricePaid.toDoubleOrNull()
-        val containerWeight = state.containerWeightLb.toDoubleOrNull()
 
-        val validationError = when {
-            name.isBlank() -> "Name is required."
-            price == null || price <= 0.0 -> "Price paid must be greater than 0."
-            containerWeight == null || containerWeight <= 0.0 -> "Container weight must be greater than 0."
-            else -> null
+        val price = state.pricePaid.trim().toDoubleOrNull()
+        if (name.isBlank()) {
+            _uiState.update { it.copy(errorMessage = "Name is required.") }
+            return
+        }
+        if (price == null || price <= 0.0) {
+            _uiState.update { it.copy(errorMessage = "Price paid must be greater than 0.") }
+            return
         }
 
-        if (validationError != null) {
-            _uiState.update { it.copy(errorMessage = validationError) }
+        val containerWeight = state.containerWeightLb.trim().toDoubleOrNull()
+        if (containerWeight == null || containerWeight <= 0.0) {
+            _uiState.update { it.copy(errorMessage = "Container weight must be greater than 0.") }
             return
         }
 
