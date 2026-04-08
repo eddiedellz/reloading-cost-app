@@ -11,6 +11,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -65,102 +67,126 @@ private fun LoadCostCalculatorScreenContent(
     onCalculateClicked: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text(
-            text = "RELOADING COST CALCULATOR TEST",
-            style = MaterialTheme.typography.headlineSmall,
-        )
-
-        DecimalNumberInputField(
-            label = "Powder price",
-            value = uiState.powderPrice,
-            onValueChange = onPowderPriceChanged,
-        )
-        DecimalNumberInputField(
-            label = "Powder container weight (lbs)",
-            value = uiState.powderContainerWeight,
-            onValueChange = onPowderContainerWeightChanged,
-        )
-        DecimalNumberInputField(
-            label = "Charge weight (grains)",
-            value = uiState.chargeWeight,
-            onValueChange = onChargeWeightChanged,
-        )
-
-        DecimalNumberInputField(
-            label = "Primer price",
-            value = uiState.primerPrice,
-            onValueChange = onPrimerPriceChanged,
-        )
-        IntegerNumberInputField(
-            label = "Primer quantity",
-            value = uiState.primerQuantity,
-            onValueChange = onPrimerQuantityChanged,
-        )
-
-        DecimalNumberInputField(
-            label = "Bullet price",
-            value = uiState.bulletPrice,
-            onValueChange = onBulletPriceChanged,
-        )
-        IntegerNumberInputField(
-            label = "Bullet quantity",
-            value = uiState.bulletQuantity,
-            onValueChange = onBulletQuantityChanged,
-        )
-
-        DecimalNumberInputField(
-            label = "Brass price",
-            value = uiState.brassPrice,
-            onValueChange = onBrassPriceChanged,
-        )
-        IntegerNumberInputField(
-            label = "Brass quantity",
-            value = uiState.brassQuantity,
-            onValueChange = onBrassQuantityChanged,
-        )
-        IntegerNumberInputField(
-            label = "Brass reload count",
-            value = uiState.brassReloadCount,
-            onValueChange = onBrassReloadCountChanged,
-        )
-
-        Button(
-            onClick = onCalculateClicked,
-            modifier = Modifier.fillMaxWidth(),
+    Scaffold(
+        modifier = modifier,
+        topBar = {
+            TopAppBar(
+                title = { Text("Reloading Cost Calculator") },
+            )
+        },
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(innerPadding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text(text = "Calculate")
-        }
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(),
-        ) {
-            val formattedPowderCostPerRound = "${CurrencyFormatters.formatUsd(uiState.result.powderCostPerRound)}/rd"
-            val formattedPrimerCostPerRound = "${CurrencyFormatters.formatUsd(uiState.result.primerCostPerRound)}/rd"
-            val formattedBulletCostPerRound = "${CurrencyFormatters.formatUsd(uiState.result.bulletCostPerRound)}/rd"
-            val formattedBrassCostPerRound = "${CurrencyFormatters.formatUsd(uiState.result.brassCostPerRound)}/rd"
-            val formattedTotalCostPerRound = "${CurrencyFormatters.formatUsd(uiState.result.totalCostPerRound)}/rd"
-            val formattedTotalCostPer50 = CurrencyFormatters.formatUsd(uiState.result.totalCostPer50)
-            val formattedTotalCostPer100 = CurrencyFormatters.formatUsd(uiState.result.totalCostPer100)
-
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(),
             ) {
-                Text("Powder cost per round: $formattedPowderCostPerRound")
-                Text("Primer cost per round: $formattedPrimerCostPerRound")
-                Text("Bullet cost per round: $formattedBulletCostPerRound")
-                Text("Brass cost per round: $formattedBrassCostPerRound")
-                Text("Total cost per round: $formattedTotalCostPerRound")
-                Text("Total cost per 50: $formattedTotalCostPer50")
-                Text("Total cost per 100: $formattedTotalCostPer100")
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Text(
+                        text = "Inputs",
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+
+                    DecimalNumberInputField(
+                        label = "Powder price",
+                        value = uiState.powderPrice,
+                        onValueChange = onPowderPriceChanged,
+                    )
+                    DecimalNumberInputField(
+                        label = "Powder container weight (lbs)",
+                        value = uiState.powderContainerWeight,
+                        onValueChange = onPowderContainerWeightChanged,
+                    )
+                    DecimalNumberInputField(
+                        label = "Charge weight (grains)",
+                        value = uiState.chargeWeight,
+                        onValueChange = onChargeWeightChanged,
+                    )
+
+                    DecimalNumberInputField(
+                        label = "Primer price",
+                        value = uiState.primerPrice,
+                        onValueChange = onPrimerPriceChanged,
+                    )
+                    IntegerNumberInputField(
+                        label = "Primer quantity",
+                        value = uiState.primerQuantity,
+                        onValueChange = onPrimerQuantityChanged,
+                    )
+
+                    DecimalNumberInputField(
+                        label = "Bullet price",
+                        value = uiState.bulletPrice,
+                        onValueChange = onBulletPriceChanged,
+                    )
+                    IntegerNumberInputField(
+                        label = "Bullet quantity",
+                        value = uiState.bulletQuantity,
+                        onValueChange = onBulletQuantityChanged,
+                    )
+
+                    DecimalNumberInputField(
+                        label = "Brass price",
+                        value = uiState.brassPrice,
+                        onValueChange = onBrassPriceChanged,
+                    )
+                    IntegerNumberInputField(
+                        label = "Brass quantity",
+                        value = uiState.brassQuantity,
+                        onValueChange = onBrassQuantityChanged,
+                    )
+                    IntegerNumberInputField(
+                        label = "Brass reload count",
+                        value = uiState.brassReloadCount,
+                        onValueChange = onBrassReloadCountChanged,
+                    )
+
+                    Button(
+                        onClick = onCalculateClicked,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(text = "Calculate")
+                    }
+                }
+            }
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(),
+            ) {
+                val formattedPowderCostPerRound = "${CurrencyFormatters.formatUsd(uiState.result.powderCostPerRound)}/rd"
+                val formattedPrimerCostPerRound = "${CurrencyFormatters.formatUsd(uiState.result.primerCostPerRound)}/rd"
+                val formattedBulletCostPerRound = "${CurrencyFormatters.formatUsd(uiState.result.bulletCostPerRound)}/rd"
+                val formattedBrassCostPerRound = "${CurrencyFormatters.formatUsd(uiState.result.brassCostPerRound)}/rd"
+                val formattedTotalCostPerRound = "${CurrencyFormatters.formatUsd(uiState.result.totalCostPerRound)}/rd"
+                val formattedTotalCostPer50 = CurrencyFormatters.formatUsd(uiState.result.totalCostPer50)
+                val formattedTotalCostPer100 = CurrencyFormatters.formatUsd(uiState.result.totalCostPer100)
+
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        text = "Results",
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text("Powder cost per round: $formattedPowderCostPerRound")
+                    Text("Primer cost per round: $formattedPrimerCostPerRound")
+                    Text("Bullet cost per round: $formattedBulletCostPerRound")
+                    Text("Brass cost per round: $formattedBrassCostPerRound")
+                    Text("Total cost per round: $formattedTotalCostPerRound")
+                    Text("Total cost per 50: $formattedTotalCostPer50")
+                    Text("Total cost per 100: $formattedTotalCostPer100")
+                }
             }
         }
     }
