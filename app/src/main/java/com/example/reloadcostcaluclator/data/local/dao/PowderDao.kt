@@ -25,4 +25,7 @@ interface PowderDao {
 
     @Query("SELECT * FROM powders WHERE id = :id")
     fun getById(id: Long): Flow<PowderEntity?>
+
+    @Query("SELECT * FROM powders WHERE lower(name) = lower(:name) LIMIT 1")
+    suspend fun getByName(name: String): PowderEntity?
 }

@@ -18,6 +18,7 @@ import com.example.reloadcostcaluclator.ui.screens.components.AddEditPrimerScree
 import com.example.reloadcostcaluclator.ui.screens.components.BrassListScreen
 import com.example.reloadcostcaluclator.ui.screens.components.BulletListScreen
 import com.example.reloadcostcaluclator.ui.screens.components.PowderListScreen
+import com.example.reloadcostcaluclator.ui.screens.components.OrderEntryScreen
 import com.example.reloadcostcaluclator.ui.screens.components.PrimerListScreen
 import com.example.reloadcostcaluclator.ui.screens.loadrecipes.AddEditLoadRecipeScreen
 import com.example.reloadcostcaluclator.ui.screens.loadrecipes.LoadRecipeDetailScreen
@@ -56,6 +57,14 @@ fun AppNavHost(
                 onPrimersClick = { navController.navigate(Routes.PRIMER_LIST) },
                 onBulletsClick = { navController.navigate(Routes.BULLET_LIST) },
                 onBrassClick = { navController.navigate(Routes.BRASS_LIST) },
+                onOrderEntryClick = { navController.navigate(Routes.ORDER_ENTRY) },
+            )
+        }
+        composable(Routes.ORDER_ENTRY) {
+            OrderEntryScreen(
+                repository = appContainer.purchaseOrderRepository,
+                onBackClick = { navController.popBackStack() },
+                onSaved = { navController.popBackStack() },
             )
         }
         composable(Routes.LOAD_COST_SUMMARY) {
@@ -135,6 +144,7 @@ fun AppNavHost(
         composable(Routes.ADD_EDIT_POWDER) {
             AddEditPowderScreen(
                 repository = appContainer.powderRepository,
+                purchaseOrderRepository = appContainer.purchaseOrderRepository,
                 itemId = null,
                 onBackClick = { navController.popBackStack() },
                 onSaved = { navController.popBackStack() },
@@ -146,6 +156,7 @@ fun AppNavHost(
         ) { backStackEntry ->
             AddEditPowderScreen(
                 repository = appContainer.powderRepository,
+                purchaseOrderRepository = appContainer.purchaseOrderRepository,
                 itemId = backStackEntry.arguments?.getLong(Routes.ITEM_ID_ARG),
                 onBackClick = { navController.popBackStack() },
                 onSaved = { navController.popBackStack() },
@@ -163,6 +174,7 @@ fun AppNavHost(
         composable(Routes.ADD_EDIT_PRIMER) {
             AddEditPrimerScreen(
                 repository = appContainer.primerRepository,
+                purchaseOrderRepository = appContainer.purchaseOrderRepository,
                 itemId = null,
                 onBackClick = { navController.popBackStack() },
                 onSaved = { navController.popBackStack() },
@@ -174,6 +186,7 @@ fun AppNavHost(
         ) { backStackEntry ->
             AddEditPrimerScreen(
                 repository = appContainer.primerRepository,
+                purchaseOrderRepository = appContainer.purchaseOrderRepository,
                 itemId = backStackEntry.arguments?.getLong(Routes.ITEM_ID_ARG),
                 onBackClick = { navController.popBackStack() },
                 onSaved = { navController.popBackStack() },
@@ -191,6 +204,7 @@ fun AppNavHost(
         composable(Routes.ADD_EDIT_BULLET) {
             AddEditBulletScreen(
                 repository = appContainer.bulletRepository,
+                purchaseOrderRepository = appContainer.purchaseOrderRepository,
                 itemId = null,
                 onBackClick = { navController.popBackStack() },
                 onSaved = { navController.popBackStack() },
@@ -202,6 +216,7 @@ fun AppNavHost(
         ) { backStackEntry ->
             AddEditBulletScreen(
                 repository = appContainer.bulletRepository,
+                purchaseOrderRepository = appContainer.purchaseOrderRepository,
                 itemId = backStackEntry.arguments?.getLong(Routes.ITEM_ID_ARG),
                 onBackClick = { navController.popBackStack() },
                 onSaved = { navController.popBackStack() },
@@ -219,6 +234,7 @@ fun AppNavHost(
         composable(Routes.ADD_EDIT_BRASS) {
             AddEditBrassScreen(
                 repository = appContainer.brassRepository,
+                purchaseOrderRepository = appContainer.purchaseOrderRepository,
                 itemId = null,
                 onBackClick = { navController.popBackStack() },
                 onSaved = { navController.popBackStack() },
@@ -230,6 +246,7 @@ fun AppNavHost(
         ) { backStackEntry ->
             AddEditBrassScreen(
                 repository = appContainer.brassRepository,
+                purchaseOrderRepository = appContainer.purchaseOrderRepository,
                 itemId = backStackEntry.arguments?.getLong(Routes.ITEM_ID_ARG),
                 onBackClick = { navController.popBackStack() },
                 onSaved = { navController.popBackStack() },

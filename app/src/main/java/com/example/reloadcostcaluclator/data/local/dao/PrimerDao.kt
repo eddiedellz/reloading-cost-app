@@ -25,4 +25,7 @@ interface PrimerDao {
 
     @Query("SELECT * FROM primers WHERE id = :id")
     fun getById(id: Long): Flow<PrimerEntity?>
+
+    @Query("SELECT * FROM primers WHERE lower(name) = lower(:name) LIMIT 1")
+    suspend fun getByName(name: String): PrimerEntity?
 }
