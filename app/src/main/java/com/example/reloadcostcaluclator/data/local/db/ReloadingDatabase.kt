@@ -6,14 +6,20 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.reloadcostcaluclator.data.local.dao.BrassDao
 import com.example.reloadcostcaluclator.data.local.dao.BulletDao
+import com.example.reloadcostcaluclator.data.local.dao.ComponentPriceHistoryDao
 import com.example.reloadcostcaluclator.data.local.dao.LoadRecipeDao
 import com.example.reloadcostcaluclator.data.local.dao.PowderDao
 import com.example.reloadcostcaluclator.data.local.dao.PrimerDao
+import com.example.reloadcostcaluclator.data.local.dao.PurchaseOrderDao
 import com.example.reloadcostcaluclator.data.local.entity.BrassEntity
 import com.example.reloadcostcaluclator.data.local.entity.BulletEntity
+import com.example.reloadcostcaluclator.data.local.entity.ComponentPriceHistoryEntity
+import com.example.reloadcostcaluclator.data.local.entity.ComponentUpdateMode
 import com.example.reloadcostcaluclator.data.local.entity.LoadRecipeEntity
 import com.example.reloadcostcaluclator.data.local.entity.PowderEntity
 import com.example.reloadcostcaluclator.data.local.entity.PrimerEntity
+import com.example.reloadcostcaluclator.data.local.entity.PurchaseOrderEntity
+import com.example.reloadcostcaluclator.data.local.entity.PurchaseOrderItemEntity
 
 @Database(
     entities = [
@@ -22,8 +28,11 @@ import com.example.reloadcostcaluclator.data.local.entity.PrimerEntity
         BulletEntity::class,
         BrassEntity::class,
         LoadRecipeEntity::class,
+        PurchaseOrderEntity::class,
+        PurchaseOrderItemEntity::class,
+        ComponentPriceHistoryEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = false,
 )
 abstract class ReloadingDatabase : RoomDatabase() {
@@ -32,6 +41,8 @@ abstract class ReloadingDatabase : RoomDatabase() {
     abstract fun bulletDao(): BulletDao
     abstract fun brassDao(): BrassDao
     abstract fun loadRecipeDao(): LoadRecipeDao
+    abstract fun purchaseOrderDao(): PurchaseOrderDao
+    abstract fun componentPriceHistoryDao(): ComponentPriceHistoryDao
 }
 
 object ReloadingDatabaseMigrations {
@@ -39,6 +50,67 @@ object ReloadingDatabaseMigrations {
         override fun migrate(database: SupportSQLiteDatabase) {
             database.execSQL("ALTER TABLE bullets ADD COLUMN grain INTEGER")
             database.execSQL("ALTER TABLE bullets ADD COLUMN bulletType TEXT")
+        }
+    }
+
+    val MIGRATION_2_3 = object : Migration(2, 3) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            val defaultMode = ComponentUpdateMode.LATEST_PRICE.name
+            database.execSQL("ALTER TABLE powders ADD COLUMN pricingStrategy TEXT NOT NULL DEFAULT '$defaultMode'")
+            database.execSQL("ALTER TABLE primers ADD COLUMN pricingStrategy TEXT NOT NULL DEFAULT '$defaultMode'")
+            database.execSQL("ALTER TABLE bullets ADD COLUMN pricingStrategy TEXT NOT NULL DEFAULT '$defaultMode'")
+            database.execSQL("ALTER TABLE brass ADD COLUMN pricingStrategy TEXT NOT NULL DEFAULT '$defaultMode'")
+
+            database.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS purchase_orders (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    purchaseDateEpochMillis INTEGER NOT NULL,
+                    extraChargesTotal REAL NOT NULL,
+                    subtotal REAL NOT NULL,
+                    grandTotal REAL NOT NULL
+                )
+                """.trimIndent(),
+            )
+
+            database.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS purchase_order_items (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    orderId INTEGER NOT NULL,
+                    componentType TEXT NOT NULL,
+                    itemName TEXT NOT NULL,
+                    quantityOrPackageSize REAL NOT NULL,
+                    basePrice REAL NOT NULL,
+                    allocatedExtraCharge REAL NOT NULL,
+                    landedCost REAL NOT NULL,
+                    FOREIGN KEY(orderId) REFERENCES purchase_orders(id) ON DELETE CASCADE
+                )
+                """.trimIndent(),
+            )
+            database.execSQL("CREATE INDEX IF NOT EXISTS index_purchase_order_items_orderId ON purchase_order_items(orderId)")
+
+            database.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS component_price_history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    componentType TEXT NOT NULL,
+                    componentId INTEGER,
+                    componentName TEXT NOT NULL,
+                    purchaseDateEpochMillis INTEGER NOT NULL,
+                    orderId INTEGER NOT NULL,
+                    orderItemId INTEGER NOT NULL,
+                    quantity REAL NOT NULL,
+                    landedCost REAL NOT NULL
+                )
+                """.trimIndent(),
+            )
+            database.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_component_price_history_componentType_componentId ON component_price_history(componentType, componentId)",
+            )
+            database.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_component_price_history_componentType_componentName ON component_price_history(componentType, componentName)",
+            )
         }
     }
 }

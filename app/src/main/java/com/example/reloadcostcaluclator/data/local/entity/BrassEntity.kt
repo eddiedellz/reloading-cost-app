@@ -11,4 +11,5 @@ data class BrassEntity(
     val pricePaid: Double,
     val quantity: Int,
     val reloadCount: Int,
+    val pricingStrategy: String = ComponentUpdateMode.LATEST_PRICE.name,
 )

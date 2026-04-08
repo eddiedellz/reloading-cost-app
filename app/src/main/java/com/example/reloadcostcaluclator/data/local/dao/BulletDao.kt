@@ -25,4 +25,7 @@ interface BulletDao {
 
     @Query("SELECT * FROM bullets WHERE id = :id")
     fun getById(id: Long): Flow<BulletEntity?>
+
+    @Query("SELECT * FROM bullets WHERE lower(name) = lower(:name) LIMIT 1")
+    suspend fun getByName(name: String): BulletEntity?
 }

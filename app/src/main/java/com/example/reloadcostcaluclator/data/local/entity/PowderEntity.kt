@@ -10,4 +10,5 @@ data class PowderEntity(
     val name: String,
     val pricePaid: Double,
     val containerWeightLb: Double,
+    val pricingStrategy: String = ComponentUpdateMode.LATEST_PRICE.name,
 )

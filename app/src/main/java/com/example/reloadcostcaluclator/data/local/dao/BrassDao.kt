@@ -25,4 +25,7 @@ interface BrassDao {
 
     @Query("SELECT * FROM brass WHERE id = :id")
     fun getById(id: Long): Flow<BrassEntity?>
+
+    @Query("SELECT * FROM brass WHERE lower(name) = lower(:name) LIMIT 1")
+    suspend fun getByName(name: String): BrassEntity?
 }

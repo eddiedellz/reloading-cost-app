@@ -17,7 +17,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.reloadcostcaluclator.data.local.entity.ComponentType
 import com.example.reloadcostcaluclator.data.repository.BulletRepository
+import com.example.reloadcostcaluclator.data.repository.PurchaseOrderRepository
+import com.example.reloadcostcaluclator.ui.components.ComponentPriceHistoryCard
 import com.example.reloadcostcaluclator.ui.components.DecimalNumberInputField
 import com.example.reloadcostcaluclator.ui.components.IntegerNumberInputField
 import com.example.reloadcostcaluclator.ui.components.TextInputField
@@ -27,6 +30,7 @@ import com.example.reloadcostcaluclator.viewmodel.components.AddEditBulletViewMo
 @Composable
 fun AddEditBulletScreen(
     repository: BulletRepository,
+    purchaseOrderRepository: PurchaseOrderRepository,
     itemId: Long?,
     onBackClick: () -> Unit,
     onSaved: () -> Unit,
@@ -34,28 +38,21 @@ fun AddEditBulletScreen(
 ) {
     LaunchedEffect(itemId) { viewModel.load(itemId) }
     val uiState = viewModel.uiState.collectAsStateWithLifecycle()
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(if (itemId == null) "Add Bullet" else "Edit Bullet") },
-                navigationIcon = { TextButton(onClick = onBackClick) { Text("Back") } },
-            )
-        },
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier.fillMaxSize().padding(innerPadding).padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
+    Scaffold(topBar = {
+        TopAppBar(
+            title = { Text(if (itemId == null) "Add Bullet" else "Edit Bullet") },
+            navigationIcon = { TextButton(onClick = onBackClick) { Text("Back") } },
+        )
+    }) { innerPadding ->
+        Column(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             TextInputField("Name", uiState.value.name, viewModel::onNameChanged)
             IntegerNumberInputField("Grain (optional)", uiState.value.grain, viewModel::onGrainChanged)
             TextInputField("Bullet type (optional)", uiState.value.bulletType, viewModel::onBulletTypeChanged)
             DecimalNumberInputField("Price paid", uiState.value.pricePaid, viewModel::onPricePaidChanged)
             IntegerNumberInputField("Quantity", uiState.value.quantity, viewModel::onQuantityChanged)
+            ComponentPriceHistoryCard(purchaseOrderRepository, ComponentType.BULLET, uiState.value.name)
             if (uiState.value.errorMessage != null) Text(uiState.value.errorMessage!!)
-            Button(onClick = { viewModel.save(onSaved) }, modifier = Modifier.fillMaxWidth()) {
-                Text("Save")
-            }
+            Button(onClick = { viewModel.save(onSaved) }, modifier = Modifier.fillMaxWidth()) { Text("Save") }
         }
     }
 }

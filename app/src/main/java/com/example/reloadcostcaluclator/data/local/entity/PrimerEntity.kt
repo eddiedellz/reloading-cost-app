@@ -10,4 +10,5 @@ data class PrimerEntity(
     val name: String,
     val pricePaid: Double,
     val quantity: Int,
+    val pricingStrategy: String = ComponentUpdateMode.LATEST_PRICE.name,
 )
