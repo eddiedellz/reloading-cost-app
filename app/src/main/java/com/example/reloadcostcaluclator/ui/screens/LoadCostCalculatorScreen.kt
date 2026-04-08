@@ -168,17 +168,25 @@ fun LoadCostCalculatorScreen(modifier: Modifier = Modifier) {
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(),
         ) {
+            val formattedPowderCostPerRound = "${CurrencyFormatters.formatUsd(powderCostPerRound)}/rd"
+            val formattedPrimerCostPerRound = "${CurrencyFormatters.formatUsd(primerCostPerRound)}/rd"
+            val formattedBulletCostPerRound = "${CurrencyFormatters.formatUsd(bulletCostPerRound)}/rd"
+            val formattedBrassCostPerRound = "${CurrencyFormatters.formatUsd(brassCostPerRound)}/rd"
+            val formattedTotalCostPerRound = "${CurrencyFormatters.formatUsd(totalCostPerRound)}/rd"
+            val formattedTotalCostPer50 = CurrencyFormatters.formatUsd(totalCostPer50)
+            val formattedTotalCostPer100 = CurrencyFormatters.formatUsd(totalCostPer100)
+
             Column(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text("Powder cost per round: ${CurrencyFormatters.formatCostPerRound(powderCostPerRound)}")
-                Text("Primer cost per round: ${CurrencyFormatters.formatCostPerRound(primerCostPerRound)}")
-                Text("Bullet cost per round: ${CurrencyFormatters.formatCostPerRound(bulletCostPerRound)}")
-                Text("Brass cost per round: ${CurrencyFormatters.formatCostPerRound(brassCostPerRound)}")
-                Text("Total cost per round: ${CurrencyFormatters.formatCostPerRound(totalCostPerRound)}")
-                Text("Total cost per 50: ${CurrencyFormatters.formatUsd(totalCostPer50)}")
-                Text("Total cost per 100: ${CurrencyFormatters.formatUsd(totalCostPer100)}")
+                Text("Powder cost per round: $formattedPowderCostPerRound")
+                Text("Primer cost per round: $formattedPrimerCostPerRound")
+                Text("Bullet cost per round: $formattedBulletCostPerRound")
+                Text("Brass cost per round: $formattedBrassCostPerRound")
+                Text("Total cost per round: $formattedTotalCostPerRound")
+                Text("Total cost per 50: $formattedTotalCostPer50")
+                Text("Total cost per 100: $formattedTotalCostPer100")
             }
         }
     }
