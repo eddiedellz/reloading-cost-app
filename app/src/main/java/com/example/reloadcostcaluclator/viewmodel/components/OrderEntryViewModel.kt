@@ -63,13 +63,17 @@ class OrderEntryViewModel(
         val parsed = uiState.value.items.map { item ->
             val quantity = item.quantityOrPackageSize.toDoubleOrNull()
             val base = item.basePrice.toDoubleOrNull()
-            Triple(item, quantity, base)
+            ParsedItem(
+                item = item,
+                quantity = quantity,
+                basePrice = base,
+            )
         }
         val error = when {
             parsed.isEmpty() -> "Add at least one item."
-            parsed.any { it.first.itemName.isBlank() } -> "Each item needs a name."
-            parsed.any { it.second == null || it.second <= 0.0 } -> "Each quantity/package size must be greater than 0."
-            parsed.any { it.third == null || it.third <= 0.0 } -> "Each base price must be greater than 0."
+            parsed.any { it.item.itemName.isBlank() } -> "Each item needs a name."
+            parsed.any { (it.quantity ?: 0.0) <= 0.0 } -> "Each quantity/package size must be greater than 0."
+            parsed.any { (it.basePrice ?: 0.0) <= 0.0 } -> "Each base price must be greater than 0."
             extraCharges < 0.0 -> "Extra charges must be 0 or greater."
             else -> null
         }
@@ -82,13 +86,13 @@ class OrderEntryViewModel(
             repository.createOrder(
                 purchaseDateEpochMillis = System.currentTimeMillis(),
                 extraChargesTotal = extraCharges,
-                items = parsed.map {
+                items = parsed.map { parsedItem ->
                     CreateOrderItemInput(
-                        componentType = it.first.componentType,
-                        itemName = it.first.itemName.trim(),
-                        quantityOrPackageSize = it.second!!,
-                        basePrice = it.third!!,
-                        updateMode = it.first.updateMode,
+                        componentType = parsedItem.item.componentType,
+                        itemName = parsedItem.item.itemName.trim(),
+                        quantityOrPackageSize = parsedItem.quantity ?: 0.0,
+                        basePrice = parsedItem.basePrice ?: 0.0,
+                        updateMode = parsedItem.item.updateMode,
                     )
                 },
             )
@@ -104,6 +108,12 @@ class OrderEntryViewModel(
             )
         }
     }
+
+    private data class ParsedItem(
+        val item: OrderEntryItemUi,
+        val quantity: Double?,
+        val basePrice: Double?,
+    )
 
     companion object {
         fun provideFactory(repository: PurchaseOrderRepository): ViewModelProvider.Factory =
