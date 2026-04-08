@@ -8,7 +8,6 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.reloadcostcaluclator.data.di.AppContainer
 import com.example.reloadcostcaluclator.ui.screens.HomeScreen
-import com.example.reloadcostcaluclator.ui.screens.LoadCostCalculatorScreen
 import com.example.reloadcostcaluclator.ui.screens.components.AddEditBrassScreen
 import com.example.reloadcostcaluclator.ui.screens.components.AddEditBulletScreen
 import com.example.reloadcostcaluclator.ui.screens.components.AddEditPowderScreen
@@ -17,6 +16,9 @@ import com.example.reloadcostcaluclator.ui.screens.components.BrassListScreen
 import com.example.reloadcostcaluclator.ui.screens.components.BulletListScreen
 import com.example.reloadcostcaluclator.ui.screens.components.PowderListScreen
 import com.example.reloadcostcaluclator.ui.screens.components.PrimerListScreen
+import com.example.reloadcostcaluclator.ui.screens.loadrecipes.AddEditLoadRecipeScreen
+import com.example.reloadcostcaluclator.ui.screens.loadrecipes.LoadRecipeDetailScreen
+import com.example.reloadcostcaluclator.ui.screens.loadrecipes.LoadRecipeListScreen
 
 @Composable
 fun AppNavHost(
@@ -38,7 +40,58 @@ fun AppNavHost(
             )
         }
         composable(Routes.LOADS) {
-            LoadCostCalculatorScreen()
+            LoadRecipeListScreen(
+                repository = appContainer.loadRecipeRepository,
+                onBackClick = { navController.popBackStack() },
+                onAddClick = { navController.navigate(Routes.ADD_EDIT_LOAD) },
+                onRecipeClick = { recipeId -> navController.navigate("${Routes.LOAD_DETAIL}/$recipeId") },
+            )
+        }
+        composable(Routes.ADD_EDIT_LOAD) {
+            AddEditLoadRecipeScreen(
+                loadRecipeRepository = appContainer.loadRecipeRepository,
+                powderRepository = appContainer.powderRepository,
+                primerRepository = appContainer.primerRepository,
+                bulletRepository = appContainer.bulletRepository,
+                brassRepository = appContainer.brassRepository,
+                itemId = null,
+                onBackClick = { navController.popBackStack() },
+                onSaved = { navController.popBackStack() },
+            )
+        }
+        composable(
+            route = "${Routes.ADD_EDIT_LOAD}/{${Routes.ITEM_ID_ARG}}",
+            arguments = listOf(navArgument(Routes.ITEM_ID_ARG) { type = NavType.LongType }),
+        ) { backStackEntry ->
+            AddEditLoadRecipeScreen(
+                loadRecipeRepository = appContainer.loadRecipeRepository,
+                powderRepository = appContainer.powderRepository,
+                primerRepository = appContainer.primerRepository,
+                bulletRepository = appContainer.bulletRepository,
+                brassRepository = appContainer.brassRepository,
+                itemId = backStackEntry.arguments?.getLong(Routes.ITEM_ID_ARG),
+                onBackClick = { navController.popBackStack() },
+                onSaved = {
+                    navController.previousBackStackEntry?.savedStateHandle?.set("updated", true)
+                    navController.popBackStack()
+                },
+            )
+        }
+        composable(
+            route = "${Routes.LOAD_DETAIL}/{${Routes.ITEM_ID_ARG}}",
+            arguments = listOf(navArgument(Routes.ITEM_ID_ARG) { type = NavType.LongType }),
+        ) { backStackEntry ->
+            val recipeId = backStackEntry.arguments?.getLong(Routes.ITEM_ID_ARG) ?: 0L
+            LoadRecipeDetailScreen(
+                recipeId = recipeId,
+                loadRecipeRepository = appContainer.loadRecipeRepository,
+                powderRepository = appContainer.powderRepository,
+                primerRepository = appContainer.primerRepository,
+                bulletRepository = appContainer.bulletRepository,
+                brassRepository = appContainer.brassRepository,
+                onBackClick = { navController.popBackStack() },
+                onEditClick = { loadId -> navController.navigate("${Routes.ADD_EDIT_LOAD}/$loadId") },
+            )
         }
 
         composable(Routes.POWDER_LIST) {
