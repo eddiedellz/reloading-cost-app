@@ -15,6 +15,8 @@ import kotlinx.coroutines.launch
 data class AddEditBulletUiState(
     val id: Long? = null,
     val name: String = "",
+    val grain: String = "",
+    val bulletType: String = "",
     val pricePaid: String = "",
     val quantity: String = "",
     val errorMessage: String? = null,
@@ -33,6 +35,8 @@ class AddEditBulletViewModel(
                 _uiState.value = AddEditBulletUiState(
                     id = bullet.id,
                     name = bullet.name,
+                    grain = bullet.grain?.toString().orEmpty(),
+                    bulletType = bullet.bulletType.orEmpty(),
                     pricePaid = bullet.pricePaid.toString(),
                     quantity = bullet.quantity.toString(),
                 )
@@ -41,6 +45,8 @@ class AddEditBulletViewModel(
     }
 
     fun onNameChanged(value: String) = _uiState.update { it.copy(name = value, errorMessage = null) }
+    fun onGrainChanged(value: String) = _uiState.update { it.copy(grain = value, errorMessage = null) }
+    fun onBulletTypeChanged(value: String) = _uiState.update { it.copy(bulletType = value, errorMessage = null) }
     fun onPricePaidChanged(value: String) = _uiState.update { it.copy(pricePaid = value, errorMessage = null) }
     fun onQuantityChanged(value: String) = _uiState.update { it.copy(quantity = value, errorMessage = null) }
 
@@ -61,6 +67,8 @@ class AddEditBulletViewModel(
             val entity = BulletEntity(
                 id = state.id ?: 0,
                 name = state.name.trim(),
+                grain = state.grain.toIntOrNull(),
+                bulletType = state.bulletType.trim().ifBlank { null },
                 pricePaid = state.pricePaid.toDouble(),
                 quantity = state.quantity.toInt(),
             )

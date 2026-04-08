@@ -71,6 +71,8 @@ private fun BulletRow(
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(text = bullet.name)
+            if (bullet.grain != null) Text(text = "Grain: ${bullet.grain} gr")
+            if (!bullet.bulletType.isNullOrBlank()) Text(text = "Type: ${bullet.bulletType}")
             Text(text = "Price: $${bullet.pricePaid}")
             Text(text = "Quantity: ${bullet.quantity}")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

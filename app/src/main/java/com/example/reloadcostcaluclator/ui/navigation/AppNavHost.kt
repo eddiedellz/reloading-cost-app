@@ -118,6 +118,7 @@ fun AppNavHost(
                 primerRepository = appContainer.primerRepository,
                 bulletRepository = appContainer.bulletRepository,
                 brassRepository = appContainer.brassRepository,
+                factoryAmmoReferenceRepository = appContainer.factoryAmmoReferenceRepository,
                 onBackClick = { navController.popBackStack() },
                 onEditClick = { loadId -> navController.navigate("${Routes.ADD_EDIT_LOAD}/$loadId") },
             )

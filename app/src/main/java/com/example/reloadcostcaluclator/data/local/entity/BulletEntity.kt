@@ -8,6 +8,8 @@ data class BulletEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val name: String,
+    val grain: Int?,
+    val bulletType: String?,
     val pricePaid: Double,
     val quantity: Int,
 )

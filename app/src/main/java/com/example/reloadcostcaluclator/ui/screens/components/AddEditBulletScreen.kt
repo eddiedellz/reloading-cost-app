@@ -48,6 +48,8 @@ fun AddEditBulletScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             TextInputField("Name", uiState.value.name, viewModel::onNameChanged)
+            IntegerNumberInputField("Grain (optional)", uiState.value.grain, viewModel::onGrainChanged)
+            TextInputField("Bullet type (optional)", uiState.value.bulletType, viewModel::onBulletTypeChanged)
             DecimalNumberInputField("Price paid", uiState.value.pricePaid, viewModel::onPricePaidChanged)
             IntegerNumberInputField("Quantity", uiState.value.quantity, viewModel::onQuantityChanged)
             if (uiState.value.errorMessage != null) Text(uiState.value.errorMessage!!)

@@ -8,12 +8,15 @@ import com.example.reloadcostcaluclator.data.local.entity.BulletEntity
 import com.example.reloadcostcaluclator.data.local.entity.LoadRecipeEntity
 import com.example.reloadcostcaluclator.data.local.entity.PowderEntity
 import com.example.reloadcostcaluclator.data.local.entity.PrimerEntity
+import com.example.reloadcostcaluclator.data.reference.FactoryAmmoReferenceRepository
 import com.example.reloadcostcaluclator.data.repository.BrassRepository
 import com.example.reloadcostcaluclator.data.repository.BulletRepository
 import com.example.reloadcostcaluclator.data.repository.LoadRecipeRepository
 import com.example.reloadcostcaluclator.data.repository.PowderRepository
 import com.example.reloadcostcaluclator.data.repository.PrimerRepository
+import com.example.reloadcostcaluclator.model.FactoryAmmoComparison
 import com.example.reloadcostcaluclator.util.AmmoCostCalculator
+import com.example.reloadcostcaluclator.util.FactoryAmmoComparisonCalculator
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -31,6 +34,7 @@ data class LoadRecipeDetailUiState(
     val brassCostPerRound: Double = 0.0,
     val totalCostPerRound: Double = 0.0,
     val totalCostPer50: Double = 0.0,
+    val factoryComparisons: List<FactoryAmmoComparison> = emptyList(),
 )
 
 class LoadRecipeDetailViewModel(
@@ -40,6 +44,7 @@ class LoadRecipeDetailViewModel(
     primerRepository: PrimerRepository,
     bulletRepository: BulletRepository,
     brassRepository: BrassRepository,
+    factoryAmmoReferenceRepository: FactoryAmmoReferenceRepository,
 ) : ViewModel() {
 
     val uiState: StateFlow<LoadRecipeDetailUiState> = combine(
@@ -48,7 +53,8 @@ class LoadRecipeDetailViewModel(
         primerRepository.getAll(),
         bulletRepository.getAll(),
         brassRepository.getAll(),
-    ) { recipe, powders, primers, bullets, brassList ->
+        factoryAmmoReferenceRepository.getAll(),
+    ) { recipe, powders, primers, bullets, brassList, factoryReferences ->
         if (recipe == null) {
             return@combine LoadRecipeDetailUiState()
         }
@@ -84,6 +90,14 @@ class LoadRecipeDetailViewModel(
             brassCost = brassCostPerRound,
         )
 
+        val factoryComparisons = FactoryAmmoComparisonCalculator.compare(
+            loadCaliber = recipe.caliber,
+            loadGrain = bullet?.grain,
+            loadBulletType = bullet?.bulletType,
+            loadCostPerRound = totalCostPerRound,
+            references = factoryReferences,
+        )
+
         LoadRecipeDetailUiState(
             loadRecipe = recipe,
             powder = powder,
@@ -96,6 +110,7 @@ class LoadRecipeDetailViewModel(
             brassCostPerRound = brassCostPerRound,
             totalCostPerRound = totalCostPerRound,
             totalCostPer50 = AmmoCostCalculator.totalCostPer50(totalCostPerRound),
+            factoryComparisons = factoryComparisons,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -111,6 +126,7 @@ class LoadRecipeDetailViewModel(
             primerRepository: PrimerRepository,
             bulletRepository: BulletRepository,
             brassRepository: BrassRepository,
+            factoryAmmoReferenceRepository: FactoryAmmoReferenceRepository,
         ): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
@@ -122,6 +138,7 @@ class LoadRecipeDetailViewModel(
                         primerRepository = primerRepository,
                         bulletRepository = bulletRepository,
                         brassRepository = brassRepository,
+                        factoryAmmoReferenceRepository = factoryAmmoReferenceRepository,
                     ) as T
                 }
             }
