@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
 data class LoadCostCalculatorUiState(
+    val loadName: String = "",
     val powderPrice: String = "",
     val powderContainerWeight: String = "",
     val chargeWeight: String = "",
@@ -34,6 +35,10 @@ data class LoadCostResultUiState(
 class LoadCostCalculatorViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(LoadCostCalculatorUiState())
     val uiState: StateFlow<LoadCostCalculatorUiState> = _uiState.asStateFlow()
+
+    fun onLoadNameChanged(value: String) {
+        _uiState.update { it.copy(loadName = value) }
+    }
 
     fun onPowderPriceChanged(value: String) {
         _uiState.update { it.copy(powderPrice = value) }
