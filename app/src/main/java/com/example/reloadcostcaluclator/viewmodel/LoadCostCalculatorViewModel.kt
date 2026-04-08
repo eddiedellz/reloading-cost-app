@@ -76,25 +76,25 @@ class LoadCostCalculatorViewModel : ViewModel() {
     }
 
     fun onCalculateClicked() {
-        val currentState = _uiState.value
+        val state = _uiState.value
 
         val powderCostPerRound = AmmoCostCalculator.powderCostPerRound(
-            powderPrice = currentState.powderPrice.toDoubleOrNull() ?: 0.0,
-            containerWeightLb = currentState.powderContainerWeight.toDoubleOrNull() ?: 0.0,
-            chargeWeightGr = currentState.chargeWeight.toDoubleOrNull() ?: 0.0,
+            powderPrice = state.powderPrice.toSafeDouble(),
+            containerWeightLb = state.powderContainerWeight.toSafeDouble(),
+            chargeWeightGr = state.chargeWeight.toSafeDouble(),
         )
         val primerCostPerRound = AmmoCostCalculator.primerCostPerRound(
-            primerPrice = currentState.primerPrice.toDoubleOrNull() ?: 0.0,
-            primerQuantity = currentState.primerQuantity.toIntOrNull() ?: 0,
+            primerPrice = state.primerPrice.toSafeDouble(),
+            primerQuantity = state.primerQuantity.toSafeInt(),
         )
         val bulletCostPerRound = AmmoCostCalculator.bulletCostPerRound(
-            bulletPrice = currentState.bulletPrice.toDoubleOrNull() ?: 0.0,
-            bulletQuantity = currentState.bulletQuantity.toIntOrNull() ?: 0,
+            bulletPrice = state.bulletPrice.toSafeDouble(),
+            bulletQuantity = state.bulletQuantity.toSafeInt(),
         )
         val brassCostPerRound = AmmoCostCalculator.brassCostPerRound(
-            brassPrice = currentState.brassPrice.toDoubleOrNull() ?: 0.0,
-            brassQuantity = currentState.brassQuantity.toIntOrNull() ?: 0,
-            reloadCount = currentState.brassReloadCount.toIntOrNull() ?: 0,
+            brassPrice = state.brassPrice.toSafeDouble(),
+            brassQuantity = state.brassQuantity.toSafeInt(),
+            reloadCount = state.brassReloadCount.toSafeInt(),
         )
         val totalCostPerRound = AmmoCostCalculator.totalCostPerRound(
             powderCost = powderCostPerRound,
@@ -117,4 +117,8 @@ class LoadCostCalculatorViewModel : ViewModel() {
             )
         }
     }
+
+    private fun String.toSafeDouble(): Double = toDoubleOrNull() ?: 0.0
+
+    private fun String.toSafeInt(): Int = toIntOrNull() ?: 0
 }
