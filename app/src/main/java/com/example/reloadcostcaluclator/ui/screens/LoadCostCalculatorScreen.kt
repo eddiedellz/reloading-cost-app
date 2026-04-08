@@ -18,7 +18,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.reloadcostcaluclator.ui.components.CostInputField
+import com.example.reloadcostcaluclator.ui.components.DecimalNumberInputField
+import com.example.reloadcostcaluclator.ui.components.IntegerNumberInputField
 import com.example.reloadcostcaluclator.ui.theme.ReloadCostCaluclatorTheme
 import com.example.reloadcostcaluclator.util.CurrencyFormatters
 import com.example.reloadcostcaluclator.viewmodel.LoadCostCalculatorUiState
@@ -76,64 +77,58 @@ private fun LoadCostCalculatorScreenContent(
             style = MaterialTheme.typography.headlineSmall,
         )
 
-        CostInputField(
+        DecimalNumberInputField(
             label = "Powder price",
             value = uiState.powderPrice,
             onValueChange = onPowderPriceChanged,
         )
-        CostInputField(
+        DecimalNumberInputField(
             label = "Powder container weight (lbs)",
             value = uiState.powderContainerWeight,
             onValueChange = onPowderContainerWeightChanged,
-            isDecimal = true,
         )
-        CostInputField(
+        DecimalNumberInputField(
             label = "Charge weight (grains)",
             value = uiState.chargeWeight,
             onValueChange = onChargeWeightChanged,
-            isDecimal = true,
         )
 
-        CostInputField(
+        DecimalNumberInputField(
             label = "Primer price",
             value = uiState.primerPrice,
             onValueChange = onPrimerPriceChanged,
         )
-        CostInputField(
+        IntegerNumberInputField(
             label = "Primer quantity",
             value = uiState.primerQuantity,
             onValueChange = onPrimerQuantityChanged,
-            isDecimal = false,
         )
 
-        CostInputField(
+        DecimalNumberInputField(
             label = "Bullet price",
             value = uiState.bulletPrice,
             onValueChange = onBulletPriceChanged,
         )
-        CostInputField(
+        IntegerNumberInputField(
             label = "Bullet quantity",
             value = uiState.bulletQuantity,
             onValueChange = onBulletQuantityChanged,
-            isDecimal = false,
         )
 
-        CostInputField(
+        DecimalNumberInputField(
             label = "Brass price",
             value = uiState.brassPrice,
             onValueChange = onBrassPriceChanged,
         )
-        CostInputField(
+        IntegerNumberInputField(
             label = "Brass quantity",
             value = uiState.brassQuantity,
             onValueChange = onBrassQuantityChanged,
-            isDecimal = false,
         )
-        CostInputField(
+        IntegerNumberInputField(
             label = "Brass reload count",
             value = uiState.brassReloadCount,
             onValueChange = onBrassReloadCountChanged,
-            isDecimal = false,
         )
 
         Button(
