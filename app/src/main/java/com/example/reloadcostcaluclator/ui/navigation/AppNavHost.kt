@@ -11,6 +11,7 @@ import com.example.reloadcostcaluclator.ui.screens.HomeScreen
 import com.example.reloadcostcaluclator.ui.screens.LoadCostCalculatorScreen
 import com.example.reloadcostcaluclator.ui.screens.loadrecipes.LoadCostSummaryScreen
 import com.example.reloadcostcaluclator.ui.screens.components.AddEditBrassScreen
+import com.example.reloadcostcaluclator.ui.screens.components.ComponentsScreen
 import com.example.reloadcostcaluclator.ui.screens.components.AddEditBulletScreen
 import com.example.reloadcostcaluclator.ui.screens.components.AddEditPowderScreen
 import com.example.reloadcostcaluclator.ui.screens.components.AddEditPrimerScreen
@@ -39,17 +40,23 @@ fun AppNavHost(
                 primerRepository = appContainer.primerRepository,
                 bulletRepository = appContainer.bulletRepository,
                 brassRepository = appContainer.brassRepository,
-                onPowdersClick = { navController.navigate(Routes.POWDER_LIST) },
-                onPrimersClick = { navController.navigate(Routes.PRIMER_LIST) },
-                onBulletsClick = { navController.navigate(Routes.BULLET_LIST) },
-                onBrassClick = { navController.navigate(Routes.BRASS_LIST) },
-                onLoadsClick = { navController.navigate(Routes.LOADS) },
+                onComponentsClick = { navController.navigate(Routes.COMPONENTS) },
+                onLoadsToolsClick = { navController.navigate(Routes.LOADS) },
                 onCalculatorClick = { navController.navigate(Routes.CALCULATOR) },
                 onLoadCostSummaryClick = { navController.navigate(Routes.LOAD_COST_SUMMARY) },
             )
         }
         composable(Routes.CALCULATOR) {
             LoadCostCalculatorScreen()
+        }
+        composable(Routes.COMPONENTS) {
+            ComponentsScreen(
+                onBackClick = { navController.popBackStack() },
+                onPowdersClick = { navController.navigate(Routes.POWDER_LIST) },
+                onPrimersClick = { navController.navigate(Routes.PRIMER_LIST) },
+                onBulletsClick = { navController.navigate(Routes.BULLET_LIST) },
+                onBrassClick = { navController.navigate(Routes.BRASS_LIST) },
+            )
         }
         composable(Routes.LOAD_COST_SUMMARY) {
             LoadCostSummaryScreen(
