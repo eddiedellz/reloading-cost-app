@@ -49,11 +49,13 @@ class AddEditBrassViewModel(
 
     fun save(onSaved: () -> Unit) {
         val state = _uiState.value
+        val pricePaid = state.pricePaid.toDoubleOrNull()
+
         val validationError = when {
             state.name.isBlank() -> "Name is required."
-            state.pricePaid.toDoubleOrNull()?.let { it > 0.0 } != true -> "Price paid must be greater than 0."
             state.quantity.toIntOrNull()?.let { it > 0 } != true -> "Quantity must be greater than 0."
             state.reloadCount.toIntOrNull()?.let { it > 0 } != true -> "Reload count must be greater than 0."
+            pricePaid == null || pricePaid < 0.0 -> "Price paid must be 0 or greater."
             else -> null
         }
         if (validationError != null) {
@@ -65,7 +67,7 @@ class AddEditBrassViewModel(
             val entity = BrassEntity(
                 id = state.id ?: 0,
                 name = state.name.trim(),
-                pricePaid = state.pricePaid.toDouble(),
+                pricePaid = pricePaid,
                 quantity = state.quantity.toInt(),
                 reloadCount = state.reloadCount.toInt(),
             )
