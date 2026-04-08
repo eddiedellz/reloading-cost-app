@@ -22,9 +22,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.reloadcostcaluclator.ui.components.CostInputField
-import com.example.reloadcostcaluclator.ui.components.ResultRow
 import com.example.reloadcostcaluclator.ui.theme.ReloadCostCaluclatorTheme
 import com.example.reloadcostcaluclator.util.AmmoCostCalculator
+import com.example.reloadcostcaluclator.util.CurrencyFormatters
 
 @Composable
 fun LoadCostCalculatorScreen(modifier: Modifier = Modifier) {
@@ -55,7 +55,7 @@ fun LoadCostCalculatorScreen(modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
-            text = "Load Cost Calculator",
+            text = "RELOADING COST CALCULATOR TEST",
             style = MaterialTheme.typography.headlineSmall,
         )
 
@@ -172,13 +172,13 @@ fun LoadCostCalculatorScreen(modifier: Modifier = Modifier) {
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                ResultRow("Powder cost per round", powderCostPerRound)
-                ResultRow("Primer cost per round", primerCostPerRound)
-                ResultRow("Bullet cost per round", bulletCostPerRound)
-                ResultRow("Brass cost per round", brassCostPerRound)
-                ResultRow("Total cost per round", totalCostPerRound)
-                ResultRow("Total cost per 50", totalCostPer50)
-                ResultRow("Total cost per 100", totalCostPer100)
+                Text("Powder cost per round: ${CurrencyFormatters.formatCostPerRound(powderCostPerRound)}")
+                Text("Primer cost per round: ${CurrencyFormatters.formatCostPerRound(primerCostPerRound)}")
+                Text("Bullet cost per round: ${CurrencyFormatters.formatCostPerRound(bulletCostPerRound)}")
+                Text("Brass cost per round: ${CurrencyFormatters.formatCostPerRound(brassCostPerRound)}")
+                Text("Total cost per round: ${CurrencyFormatters.formatCostPerRound(totalCostPerRound)}")
+                Text("Total cost per 50: ${CurrencyFormatters.formatUsd(totalCostPer50)}")
+                Text("Total cost per 100: ${CurrencyFormatters.formatUsd(totalCostPer100)}")
             }
         }
     }
