@@ -103,6 +103,7 @@ fun OrderEntryScreen(
                     item = item,
                     lineSubtotal = computedLine?.lineSubtotal?.toDouble() ?: 0.0,
                     allocatedExtra = computedLine?.allocatedExtra?.toDouble() ?: 0.0,
+                    baseUnitCost = item.unitPrice.toDoubleOrNull() ?: 0.0,
                     adjustedUnitCost = computedLine?.adjustedUnitCost?.toDouble() ?: 0.0,
                     onNameChanged = { viewModel.onItemNameChanged(item.id, it) },
                     onTypeChanged = { viewModel.onItemTypeChanged(item.id, it) },
@@ -179,6 +180,7 @@ private fun OrderItemCard(
     item: OrderEntryItemUi,
     lineSubtotal: Double,
     allocatedExtra: Double,
+    baseUnitCost: Double,
     adjustedUnitCost: Double,
     onNameChanged: (String) -> Unit,
     onTypeChanged: (ComponentType) -> Unit,
@@ -219,6 +221,7 @@ private fun OrderItemCard(
                 onSelected = onModeChanged,
             )
             Text("Line subtotal: ${CurrencyFormatters.formatUsd(lineSubtotal)}")
+            Text("Base unit cost: ${CurrencyFormatters.formatUsd(baseUnitCost)}")
             Text("Allocated extra: ${CurrencyFormatters.formatUsd(allocatedExtra)}")
             Text("Adjusted unit cost: ${CurrencyFormatters.formatUsd(adjustedUnitCost)}")
             TextButton(onClick = onRemove) { Text("Remove") }
