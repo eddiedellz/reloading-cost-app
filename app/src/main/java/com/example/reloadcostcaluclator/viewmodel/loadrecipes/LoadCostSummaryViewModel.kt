@@ -25,6 +25,8 @@ class LoadCostSummaryViewModel(
     data class LoadCostSummaryItemUi(
         val id: Long,
         val loadName: String,
+        val caliber: String,
+        val grain: Double,
         val costPerEach: Double,
         val costPer50: Double,
         val costPer1000: Double,
@@ -72,6 +74,8 @@ class LoadCostSummaryViewModel(
             LoadCostSummaryItemUi(
                 id = recipe.id,
                 loadName = recipe.name,
+                caliber = recipe.caliber,
+                grain = recipe.chargeWeightGr,
                 costPerEach = costPerEach,
                 costPer50 = AmmoCostCalculator.totalCostPer50(costPerEach),
                 costPer1000 = costPerEach * 1000,

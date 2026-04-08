@@ -19,10 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Dataset
-import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Science
-import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.filled.Workspaces
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -76,11 +73,8 @@ fun HomeScreen(
     primerRepository: PrimerRepository,
     bulletRepository: BulletRepository,
     brassRepository: BrassRepository,
-    onPowdersClick: () -> Unit,
-    onPrimersClick: () -> Unit,
-    onBulletsClick: () -> Unit,
-    onBrassClick: () -> Unit,
-    onLoadsClick: () -> Unit,
+    onComponentsClick: () -> Unit,
+    onLoadsToolsClick: () -> Unit,
     onCalculatorClick: () -> Unit,
     onLoadCostSummaryClick: () -> Unit,
     viewModel: LoadCostSummaryViewModel = viewModel(
@@ -95,16 +89,31 @@ fun HomeScreen(
 ) {
     val summaryItems = viewModel.summaryItems.collectAsStateWithLifecycle()
 
-    val manageComponentsCards = listOf(
-        HomeCardItem("Powders", "Manage burn rates and cost", Icons.Filled.Science, onPowdersClick),
-        HomeCardItem("Primers", "Track stock and pricing", Icons.Filled.WaterDrop, onPrimersClick),
-        HomeCardItem("Bullets", "Catalog weight and profile", Icons.Filled.Tune, onBulletsClick),
-        HomeCardItem("Brass", "Monitor lot life and reuse", Icons.Filled.Inventory2, onBrassClick),
-    )
-
-    val toolsCards = listOf(
-        HomeCardItem("Loads", "View and edit load recipes", Icons.Filled.Dataset, onLoadsClick),
-        HomeCardItem("Calculator", "Calculate per-round cost", Icons.Filled.Calculate, onCalculatorClick),
+    val dashboardCards = listOf(
+        HomeCardItem(
+            title = "Quick Cost Calculator",
+            subtitle = "Instant per-round and batch pricing",
+            icon = Icons.Filled.Workspaces,
+            onClick = onCalculatorClick,
+        ),
+        HomeCardItem(
+            title = "Load Cost Summary",
+            subtitle = "Review every saved recipe cost",
+            icon = Icons.Filled.Calculate,
+            onClick = onLoadCostSummaryClick,
+        ),
+        HomeCardItem(
+            title = "Components",
+            subtitle = "Manage powders, primers, bullets, and brass",
+            icon = Icons.Filled.Science,
+            onClick = onComponentsClick,
+        ),
+        HomeCardItem(
+            title = "Loads / Tools",
+            subtitle = "Build and tune load recipes",
+            icon = Icons.Filled.Dataset,
+            onClick = onLoadsToolsClick,
+        ),
     )
 
     Scaffold(
@@ -138,8 +147,8 @@ fun HomeScreen(
                 DashboardHeader()
             }
 
-            item(span = { GridItemSpan(2) }) {
-                FeaturedSummaryCard(onCalculatorClick = onCalculatorClick)
+            items(dashboardCards.size) { index ->
+                HomeActionCard(item = dashboardCards[index])
             }
 
             item(span = { GridItemSpan(2) }) {
@@ -147,22 +156,6 @@ fun HomeScreen(
                     loadCostSummaries = summaryItems.value,
                     onShowAllClick = onLoadCostSummaryClick,
                 )
-            }
-
-            item(span = { GridItemSpan(2) }) {
-                SectionHeader(title = "Manage Components", subtitle = "Inventory and pricing")
-            }
-
-            items(manageComponentsCards.size) { index ->
-                HomeActionCard(item = manageComponentsCards[index])
-            }
-
-            item(span = { GridItemSpan(2) }) {
-                SectionHeader(title = "Loads & Tools", subtitle = "Recipes and calculations")
-            }
-
-            items(toolsCards.size) { index ->
-                HomeActionCard(item = toolsCards[index])
             }
 
             item(span = { GridItemSpan(2) }) {
@@ -185,59 +178,10 @@ private fun DashboardHeader() {
             fontWeight = FontWeight.Bold,
         )
         Text(
-            text = "Manage your components, optimize costs, and build consistent loads.",
+            text = "Quick actions, full-cost visibility, and premium component management.",
             color = SubtleText,
             style = MaterialTheme.typography.bodyMedium,
         )
-    }
-}
-
-@Composable
-private fun FeaturedSummaryCard(
-    onCalculatorClick: () -> Unit,
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onCalculatorClick),
-        colors = CardDefaults.cardColors(containerColor = SectionCardColor),
-        shape = RoundedCornerShape(20.dp),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(AccentBrassMuted),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Workspaces,
-                    contentDescription = null,
-                    tint = AccentBrass,
-                )
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = "Quick Cost Calculator",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color.White,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Text(
-                    text = "Jump into calculations with your latest component pricing.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = BodyText,
-                )
-            }
-        }
     }
 }
 
@@ -272,7 +216,7 @@ private fun LoadCostSummaryCard(
                     color = BodyText,
                 )
             } else {
-                val topItems = loadCostSummaries.take(20)
+                val topItems = loadCostSummaries.take(5)
                 topItems.forEachIndexed { index, item ->
                     LoadSummaryRow(item = item)
                     if (index != topItems.lastIndex) {
@@ -280,7 +224,7 @@ private fun LoadCostSummaryCard(
                     }
                 }
 
-                if (loadCostSummaries.size > 20) {
+                if (loadCostSummaries.size > 5) {
                     Button(
                         onClick = onShowAllClick,
                         modifier = Modifier.fillMaxWidth(),
@@ -302,21 +246,36 @@ private fun LoadSummaryRow(
     item: LoadCostSummaryViewModel.LoadCostSummaryItemUi,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = item.loadName,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White,
+            )
+            Text(
+                text = item.caliber,
+                style = MaterialTheme.typography.bodySmall,
+                color = SubtleText,
+            )
+        }
         Text(
-            text = item.loadName,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
-            color = Color.White,
-        )
-        Text(
-            text = "Each: ${CurrencyFormatters.formatUsd(item.costPerEach)}",
-            style = MaterialTheme.typography.bodyMedium,
+            text = "${item.grain} gr",
+            style = MaterialTheme.typography.bodySmall,
             color = BodyText,
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
+            Text(
+                text = "Each: ${CurrencyFormatters.formatUsd(item.costPerEach)}",
+                style = MaterialTheme.typography.bodySmall,
+                color = BodyText,
+            )
             Text(
                 text = "50: ${CurrencyFormatters.formatUsd(item.costPer50)}",
                 style = MaterialTheme.typography.bodySmall,
@@ -328,29 +287,6 @@ private fun LoadSummaryRow(
                 color = SubtleText,
             )
         }
-    }
-}
-
-@Composable
-private fun SectionHeader(
-    title: String,
-    subtitle: String,
-) {
-    Column(
-        modifier = Modifier.padding(top = 8.dp, bottom = 2.dp),
-        verticalArrangement = Arrangement.spacedBy(2.dp),
-    ) {
-        Text(
-            text = title,
-            color = Color.White,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-        )
-        Text(
-            text = subtitle,
-            color = SubtleText,
-            style = MaterialTheme.typography.bodySmall,
-        )
     }
 }
 
