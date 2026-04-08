@@ -6,6 +6,7 @@ object Routes {
     const val LOAD_DETAIL = "load_detail"
     const val ADD_EDIT_LOAD = "add_edit_load"
     const val CALCULATOR = "calculator"
+    const val LOAD_COST_SUMMARY = "load_cost_summary"
 
     const val POWDER_LIST = "powder_list"
     const val ADD_EDIT_POWDER = "add_edit_powder"

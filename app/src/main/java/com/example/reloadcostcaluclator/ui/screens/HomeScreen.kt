@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,8 +24,11 @@ import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.filled.Workspaces
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -40,6 +44,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.reloadcostcaluclator.data.repository.BrassRepository
+import com.example.reloadcostcaluclator.data.repository.BulletRepository
+import com.example.reloadcostcaluclator.data.repository.LoadRecipeRepository
+import com.example.reloadcostcaluclator.data.repository.PowderRepository
+import com.example.reloadcostcaluclator.data.repository.PrimerRepository
+import com.example.reloadcostcaluclator.util.CurrencyFormatters
+import com.example.reloadcostcaluclator.viewmodel.loadrecipes.LoadCostSummaryViewModel
 
 private val DashboardBackground = Color(0xFF0E1116)
 private val SectionCardColor = Color(0xFF161B22)
@@ -58,13 +71,30 @@ private data class HomeCardItem(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
+    loadRecipeRepository: LoadRecipeRepository,
+    powderRepository: PowderRepository,
+    primerRepository: PrimerRepository,
+    bulletRepository: BulletRepository,
+    brassRepository: BrassRepository,
     onPowdersClick: () -> Unit,
     onPrimersClick: () -> Unit,
     onBulletsClick: () -> Unit,
     onBrassClick: () -> Unit,
     onLoadsClick: () -> Unit,
     onCalculatorClick: () -> Unit,
+    onLoadCostSummaryClick: () -> Unit,
+    viewModel: LoadCostSummaryViewModel = viewModel(
+        factory = LoadCostSummaryViewModel.provideFactory(
+            loadRecipeRepository = loadRecipeRepository,
+            powderRepository = powderRepository,
+            primerRepository = primerRepository,
+            bulletRepository = bulletRepository,
+            brassRepository = brassRepository,
+        ),
+    ),
 ) {
+    val summaryItems = viewModel.summaryItems.collectAsStateWithLifecycle()
+
     val manageComponentsCards = listOf(
         HomeCardItem("Powders", "Manage burn rates and cost", Icons.Filled.Science, onPowdersClick),
         HomeCardItem("Primers", "Track stock and pricing", Icons.Filled.WaterDrop, onPrimersClick),
@@ -104,15 +134,22 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(2) }) {
+            item(span = { GridItemSpan(2) }) {
                 DashboardHeader()
             }
 
-            item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(2) }) {
+            item(span = { GridItemSpan(2) }) {
                 FeaturedSummaryCard(onCalculatorClick = onCalculatorClick)
             }
 
-            item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(2) }) {
+            item(span = { GridItemSpan(2) }) {
+                LoadCostSummaryCard(
+                    loadCostSummaries = summaryItems.value,
+                    onShowAllClick = onLoadCostSummaryClick,
+                )
+            }
+
+            item(span = { GridItemSpan(2) }) {
                 SectionHeader(title = "Manage Components", subtitle = "Inventory and pricing")
             }
 
@@ -120,7 +157,7 @@ fun HomeScreen(
                 HomeActionCard(item = manageComponentsCards[index])
             }
 
-            item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(2) }) {
+            item(span = { GridItemSpan(2) }) {
                 SectionHeader(title = "Loads & Tools", subtitle = "Recipes and calculations")
             }
 
@@ -128,7 +165,7 @@ fun HomeScreen(
                 HomeActionCard(item = toolsCards[index])
             }
 
-            item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(2) }) {
+            item(span = { GridItemSpan(2) }) {
                 Box(modifier = Modifier.height(8.dp))
             }
         }
@@ -205,6 +242,96 @@ private fun FeaturedSummaryCard(
 }
 
 @Composable
+private fun LoadCostSummaryCard(
+    loadCostSummaries: List<LoadCostSummaryViewModel.LoadCostSummaryItemUi>,
+    onShowAllClick: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = SectionCardColor),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(
+                text = "Load Cost Summary",
+                color = Color.White,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+
+            if (loadCostSummaries.isEmpty()) {
+                Text(
+                    text = "No saved loads yet. Add a load recipe to see cost summaries here.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = BodyText,
+                )
+            } else {
+                val topItems = loadCostSummaries.take(20)
+                topItems.forEachIndexed { index, item ->
+                    LoadSummaryRow(item = item)
+                    if (index != topItems.lastIndex) {
+                        Divider(color = Color(0xFF27303C))
+                    }
+                }
+
+                if (loadCostSummaries.size > 20) {
+                    Button(
+                        onClick = onShowAllClick,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = AccentBrassMuted,
+                            contentColor = Color.White,
+                        ),
+                    ) {
+                        Text("Show All")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LoadSummaryRow(
+    item: LoadCostSummaryViewModel.LoadCostSummaryItemUi,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = item.loadName,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = Color.White,
+        )
+        Text(
+            text = "Each: ${CurrencyFormatters.formatUsd(item.costPerEach)}",
+            style = MaterialTheme.typography.bodyMedium,
+            color = BodyText,
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = "50: ${CurrencyFormatters.formatUsd(item.costPer50)}",
+                style = MaterialTheme.typography.bodySmall,
+                color = SubtleText,
+            )
+            Text(
+                text = "1000: ${CurrencyFormatters.formatUsd(item.costPer1000)}",
+                style = MaterialTheme.typography.bodySmall,
+                color = SubtleText,
+            )
+        }
+    }
+}
+
+@Composable
 private fun SectionHeader(
     title: String,
     subtitle: String,
@@ -260,17 +387,17 @@ private fun HomeActionCard(
                 )
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     text = item.title,
-                    color = Color.White,
                     style = MaterialTheme.typography.titleSmall,
+                    color = Color.White,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
                     text = item.subtitle,
-                    color = BodyText,
                     style = MaterialTheme.typography.bodySmall,
+                    color = BodyText,
                 )
             }
         }
