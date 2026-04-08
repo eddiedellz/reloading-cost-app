@@ -1,8 +1,6 @@
 package com.example.reloadcostcaluclator.ui.screens.loadrecipes
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -10,9 +8,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -102,6 +101,7 @@ fun AddEditLoadRecipeScreen(
                 label = "Powder",
                 options = powders.value,
                 selectedId = uiState.value.powderId,
+                optionId = { it.id },
                 optionLabel = { it.name },
                 onSelected = viewModel::onPowderChanged,
             )
@@ -114,6 +114,7 @@ fun AddEditLoadRecipeScreen(
                 label = "Primer",
                 options = primers.value,
                 selectedId = uiState.value.primerId,
+                optionId = { it.id },
                 optionLabel = { it.name },
                 onSelected = viewModel::onPrimerChanged,
             )
@@ -121,6 +122,7 @@ fun AddEditLoadRecipeScreen(
                 label = "Bullet",
                 options = bullets.value,
                 selectedId = uiState.value.bulletId,
+                optionId = { it.id },
                 optionLabel = { it.name },
                 onSelected = viewModel::onBulletChanged,
             )
@@ -128,6 +130,7 @@ fun AddEditLoadRecipeScreen(
                 label = "Brass",
                 options = brass.value,
                 selectedId = uiState.value.brassId,
+                optionId = { it.id },
                 optionLabel = { it.name },
                 onSelected = viewModel::onBrassChanged,
             )
@@ -151,50 +154,58 @@ fun AddEditLoadRecipeScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun <T> EntityDropdown(
     label: String,
     options: List<T>,
     selectedId: Long?,
+    optionId: (T) -> Long,
     optionLabel: (T) -> String,
     onSelected: (Long?) -> Unit,
-) where T : Any {
+) {
     var expanded by remember { mutableStateOf(false) }
-    val selectedOption = options.firstOrNull { it.getId() == selectedId }
+    val selectedOptionLabel = options
+        .firstOrNull { optionId(it) == selectedId }
+        ?.let(optionLabel)
+        .orEmpty()
 
-    Box(modifier = Modifier.fillMaxWidth()) {
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded },
+    ) {
         OutlinedTextField(
-            value = selectedOption?.let(optionLabel).orEmpty(),
+            value = selectedOptionLabel,
             onValueChange = {},
             readOnly = true,
             label = { Text(label) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier
-                .fillMaxWidth()
-                .clickable { expanded = true },
+                .menuAnchor()
+                .fillMaxWidth(),
         )
 
-        DropdownMenu(
+        ExposedDropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            modifier = Modifier.fillMaxWidth(),
         ) {
-            options.forEach { option ->
+            if (options.isEmpty()) {
                 DropdownMenuItem(
-                    text = { Text(optionLabel(option)) },
-                    onClick = {
-                        onSelected(option.getId())
-                        expanded = false
-                    },
+                    text = { Text("No saved $label") },
+                    onClick = { expanded = false },
+                    enabled = false,
                 )
+            } else {
+                options.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(optionLabel(option)) },
+                        onClick = {
+                            onSelected(optionId(option))
+                            expanded = false
+                        },
+                    )
+                }
             }
         }
     }
-}
-
-private fun Any.getId(): Long = when (this) {
-    is PowderEntity -> id
-    is PrimerEntity -> id
-    is BulletEntity -> id
-    is BrassEntity -> id
-    else -> 0L
 }
