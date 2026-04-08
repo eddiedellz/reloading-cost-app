@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.reloadcostcaluclator.data.reference.FactoryAmmoReferenceRepository
 import com.example.reloadcostcaluclator.data.repository.BrassRepository
 import com.example.reloadcostcaluclator.data.repository.BulletRepository
 import com.example.reloadcostcaluclator.data.repository.LoadRecipeRepository
@@ -35,6 +36,7 @@ fun LoadRecipeDetailScreen(
     primerRepository: PrimerRepository,
     bulletRepository: BulletRepository,
     brassRepository: BrassRepository,
+    factoryAmmoReferenceRepository: FactoryAmmoReferenceRepository,
     onBackClick: () -> Unit,
     onEditClick: (Long) -> Unit,
     viewModel: LoadRecipeDetailViewModel = viewModel(
@@ -45,6 +47,7 @@ fun LoadRecipeDetailScreen(
             primerRepository = primerRepository,
             bulletRepository = bulletRepository,
             brassRepository = brassRepository,
+            factoryAmmoReferenceRepository = factoryAmmoReferenceRepository,
         ),
     ),
 ) {
@@ -87,6 +90,10 @@ fun LoadRecipeDetailScreen(
                     Text("Charge weight: ${recipe.chargeWeightGr} gr")
                     Text("Primer: ${uiState.value.primer?.name ?: "Not set"}")
                     Text("Bullet: ${uiState.value.bullet?.name ?: "Not set"}")
+                    uiState.value.bullet?.grain?.let { Text("Bullet grain: ${it} gr") }
+                    if (!uiState.value.bullet?.bulletType.isNullOrBlank()) {
+                        Text("Bullet type: ${uiState.value.bullet?.bulletType}")
+                    }
                     Text("Brass: ${uiState.value.brass?.name ?: "Not set"}")
                     if (recipe.notes.isNotBlank()) {
                         Text("Notes: ${recipe.notes}")
@@ -104,6 +111,27 @@ fun LoadRecipeDetailScreen(
                     Text("Total cost / 50: ${CurrencyFormatters.formatUsd(uiState.value.totalCostPer50)}")
                 }
             }
+
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Factory / Reference Comparison")
+                    val bestComparison = uiState.value.factoryComparisons.firstOrNull()
+                    if (bestComparison == null) {
+                        Text("No matching reference ammo found for caliber + grain + bullet type filters.")
+                    } else {
+                        Text("Reference: ${bestComparison.reference.name}")
+                        Text("Reference price / round: ${CurrencyFormatters.formatUsd(bestComparison.reference.pricePerRound)}")
+                        Text("Reference price / 50: ${CurrencyFormatters.formatUsd(bestComparison.reference.pricePer50)}")
+                        Text("Savings / round: ${CurrencyFormatters.formatUsd(bestComparison.savingsPerRound)}")
+                        Text("Savings / 50: ${CurrencyFormatters.formatUsd(bestComparison.savingsPer50)}")
+                        Text("Savings / 1000: ${CurrencyFormatters.formatUsd(bestComparison.savingsPer1000)}")
+                        if (bestComparison.reference.notes.isNotBlank()) {
+                            Text("Notes: ${bestComparison.reference.notes}")
+                        }
+                    }
+                }
+            }
+
         }
     }
 }

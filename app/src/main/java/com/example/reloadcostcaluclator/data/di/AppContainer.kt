@@ -3,6 +3,8 @@ package com.example.reloadcostcaluclator.data.di
 import android.content.Context
 import androidx.room.Room
 import com.example.reloadcostcaluclator.data.local.db.ReloadingDatabase
+import com.example.reloadcostcaluclator.data.local.db.ReloadingDatabaseMigrations
+import com.example.reloadcostcaluclator.data.reference.FactoryAmmoReferenceRepository
 import com.example.reloadcostcaluclator.data.repository.BrassRepository
 import com.example.reloadcostcaluclator.data.repository.BulletRepository
 import com.example.reloadcostcaluclator.data.repository.LoadRecipeRepository
@@ -15,7 +17,9 @@ class AppContainer(context: Context) {
             context.applicationContext,
             ReloadingDatabase::class.java,
             "reloading_database",
-        ).build()
+        )
+            .addMigrations(ReloadingDatabaseMigrations.MIGRATION_1_2)
+            .build()
     }
 
     val powderRepository: PowderRepository by lazy {
@@ -36,5 +40,9 @@ class AppContainer(context: Context) {
 
     val loadRecipeRepository: LoadRecipeRepository by lazy {
         LoadRecipeRepository(database.loadRecipeDao())
+    }
+
+    val factoryAmmoReferenceRepository: FactoryAmmoReferenceRepository by lazy {
+        FactoryAmmoReferenceRepository()
     }
 }
