@@ -5,17 +5,16 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.reloadcostcaluclator.data.local.entity.BrassEntity
 import com.example.reloadcostcaluclator.data.local.entity.BulletEntity
+import com.example.reloadcostcaluclator.data.local.entity.FactoryComparisonEntity
 import com.example.reloadcostcaluclator.data.local.entity.LoadRecipeEntity
 import com.example.reloadcostcaluclator.data.local.entity.PowderEntity
 import com.example.reloadcostcaluclator.data.local.entity.PrimerEntity
-import com.example.reloadcostcaluclator.data.reference.FactoryAmmoReferenceRepository
 import com.example.reloadcostcaluclator.data.repository.BrassRepository
 import com.example.reloadcostcaluclator.data.repository.BulletRepository
+import com.example.reloadcostcaluclator.data.repository.FactoryComparisonRepository
 import com.example.reloadcostcaluclator.data.repository.LoadRecipeRepository
 import com.example.reloadcostcaluclator.data.repository.PowderRepository
 import com.example.reloadcostcaluclator.data.repository.PrimerRepository
-import com.example.reloadcostcaluclator.model.FactoryAmmoComparison
-import com.example.reloadcostcaluclator.model.FactoryAmmoReference
 import com.example.reloadcostcaluclator.util.AmmoCostCalculator
 import com.example.reloadcostcaluclator.util.FactoryAmmoComparisonCalculator
 import kotlinx.coroutines.flow.SharingStarted
@@ -35,7 +34,12 @@ data class LoadRecipeDetailUiState(
     val brassCostPerRound: Double = 0.0,
     val totalCostPerRound: Double = 0.0,
     val totalCostPer50: Double = 0.0,
-    val factoryComparisons: List<FactoryAmmoComparison> = emptyList(),
+    val totalCostPer100: Double = 0.0,
+    val matchedFactory: FactoryComparisonEntity? = null,
+    val factoryCostPer50: Double = 0.0,
+    val factoryCostPer100: Double = 0.0,
+    val savingsPer50: Double = 0.0,
+    val savingsPer100: Double = 0.0,
 )
 
 class LoadRecipeDetailViewModel(
@@ -45,19 +49,19 @@ class LoadRecipeDetailViewModel(
     primerRepository: PrimerRepository,
     bulletRepository: BulletRepository,
     brassRepository: BrassRepository,
-    factoryAmmoReferenceRepository: FactoryAmmoReferenceRepository,
+    factoryComparisonRepository: FactoryComparisonRepository,
 ) : ViewModel() {
 
-    private data class RecipeComponentData(
+    private data class RecipeAndPowderPrimerData(
         val recipe: LoadRecipeEntity?,
         val powders: List<PowderEntity>,
         val primers: List<PrimerEntity>,
     )
 
-    private data class ReferenceComponentData(
+    private data class BulletBrassFactoryData(
         val bullets: List<BulletEntity>,
         val brassList: List<BrassEntity>,
-        val factoryReferences: List<FactoryAmmoReference>,
+        val factoryComparisons: List<FactoryComparisonEntity>,
     )
 
     val uiState: StateFlow<LoadRecipeDetailUiState> = combine(
@@ -66,33 +70,22 @@ class LoadRecipeDetailViewModel(
             powderRepository.getAll(),
             primerRepository.getAll(),
         ) { recipe, powders, primers ->
-            RecipeComponentData(
-                recipe = recipe,
-                powders = powders,
-                primers = primers,
-            )
+            RecipeAndPowderPrimerData(recipe, powders, primers)
         },
         combine(
             bulletRepository.getAll(),
             brassRepository.getAll(),
-            factoryAmmoReferenceRepository.getAll(),
-        ) { bullets, brassList, factoryReferences ->
-            ReferenceComponentData(
-                bullets = bullets,
-                brassList = brassList,
-                factoryReferences = factoryReferences,
-            )
+            factoryComparisonRepository.getAll(),
+        ) { bullets, brass, factoryComparisons ->
+            BulletBrassFactoryData(bullets, brass, factoryComparisons)
         },
-    ) { recipeData, referenceData ->
-        val recipe = recipeData.recipe
-        if (recipe == null) {
-            return@combine LoadRecipeDetailUiState()
-        }
+    ) { rppData, bbfData ->
+        val recipe = rppData.recipe ?: return@combine LoadRecipeDetailUiState()
 
-        val powder = recipeData.powders.firstOrNull { it.id == recipe.powderId }
-        val primer = recipeData.primers.firstOrNull { it.id == recipe.primerId }
-        val bullet = referenceData.bullets.firstOrNull { it.id == recipe.bulletId }
-        val brass = referenceData.brassList.firstOrNull { it.id == recipe.brassId }
+        val powder = rppData.powders.firstOrNull { it.id == recipe.powderId }
+        val primer = rppData.primers.firstOrNull { it.id == recipe.primerId }
+        val bullet = bbfData.bullets.firstOrNull { it.id == recipe.bulletId }
+        val brass = bbfData.brassList.firstOrNull { it.id == recipe.brassId }
 
         val powderCostPerRound = AmmoCostCalculator.powderCostPerRound(
             powderPrice = powder?.pricePaid ?: 0.0,
@@ -120,13 +113,17 @@ class LoadRecipeDetailViewModel(
             brassCost = brassCostPerRound,
         )
 
-        val factoryComparisons = FactoryAmmoComparisonCalculator.compare(
+        val matchedFactory = FactoryAmmoComparisonCalculator.findBestMatch(
             loadCaliber = recipe.caliber,
             loadGrain = bullet?.grain,
             loadBulletType = bullet?.bulletType,
-            loadCostPerRound = totalCostPerRound,
-            references = referenceData.factoryReferences,
+            comparisons = bbfData.factoryComparisons,
         )
+
+        val totalCostPer50 = AmmoCostCalculator.totalCostPer50(totalCostPerRound)
+        val totalCostPer100 = AmmoCostCalculator.totalCostPer100(totalCostPerRound)
+        val factoryCostPer50 = (matchedFactory?.costPerRound ?: 0.0) * 50
+        val factoryCostPer100 = (matchedFactory?.costPerRound ?: 0.0) * 100
 
         LoadRecipeDetailUiState(
             loadRecipe = recipe,
@@ -139,8 +136,13 @@ class LoadRecipeDetailViewModel(
             bulletCostPerRound = bulletCostPerRound,
             brassCostPerRound = brassCostPerRound,
             totalCostPerRound = totalCostPerRound,
-            totalCostPer50 = AmmoCostCalculator.totalCostPer50(totalCostPerRound),
-            factoryComparisons = factoryComparisons,
+            totalCostPer50 = totalCostPer50,
+            totalCostPer100 = totalCostPer100,
+            matchedFactory = matchedFactory,
+            factoryCostPer50 = factoryCostPer50,
+            factoryCostPer100 = factoryCostPer100,
+            savingsPer50 = factoryCostPer50 - totalCostPer50,
+            savingsPer100 = factoryCostPer100 - totalCostPer100,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -156,7 +158,7 @@ class LoadRecipeDetailViewModel(
             primerRepository: PrimerRepository,
             bulletRepository: BulletRepository,
             brassRepository: BrassRepository,
-            factoryAmmoReferenceRepository: FactoryAmmoReferenceRepository,
+            factoryComparisonRepository: FactoryComparisonRepository,
         ): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
@@ -168,7 +170,7 @@ class LoadRecipeDetailViewModel(
                         primerRepository = primerRepository,
                         bulletRepository = bulletRepository,
                         brassRepository = brassRepository,
-                        factoryAmmoReferenceRepository = factoryAmmoReferenceRepository,
+                        factoryComparisonRepository = factoryComparisonRepository,
                     ) as T
                 }
             }

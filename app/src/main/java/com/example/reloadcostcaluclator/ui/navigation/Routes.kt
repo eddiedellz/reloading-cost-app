@@ -10,6 +10,9 @@ object Routes {
     const val COMPONENTS = "components"
     const val ORDER_ENTRY = "order_entry"
 
+    const val FACTORY_COMPARISON_LIST = "factory_comparison_list"
+    const val ADD_EDIT_FACTORY_COMPARISON = "add_edit_factory_comparison"
+
     const val POWDER_LIST = "powder_list"
     const val ADD_EDIT_POWDER = "add_edit_powder"
 

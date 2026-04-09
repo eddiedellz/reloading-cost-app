@@ -18,9 +18,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.reloadcostcaluclator.data.reference.FactoryAmmoReferenceRepository
 import com.example.reloadcostcaluclator.data.repository.BrassRepository
 import com.example.reloadcostcaluclator.data.repository.BulletRepository
+import com.example.reloadcostcaluclator.data.repository.FactoryComparisonRepository
 import com.example.reloadcostcaluclator.data.repository.LoadRecipeRepository
 import com.example.reloadcostcaluclator.data.repository.PowderRepository
 import com.example.reloadcostcaluclator.data.repository.PrimerRepository
@@ -36,7 +36,7 @@ fun LoadRecipeDetailScreen(
     primerRepository: PrimerRepository,
     bulletRepository: BulletRepository,
     brassRepository: BrassRepository,
-    factoryAmmoReferenceRepository: FactoryAmmoReferenceRepository,
+    factoryComparisonRepository: FactoryComparisonRepository,
     onBackClick: () -> Unit,
     onEditClick: (Long) -> Unit,
     viewModel: LoadRecipeDetailViewModel = viewModel(
@@ -47,7 +47,7 @@ fun LoadRecipeDetailScreen(
             primerRepository = primerRepository,
             bulletRepository = bulletRepository,
             brassRepository = brassRepository,
-            factoryAmmoReferenceRepository = factoryAmmoReferenceRepository,
+            factoryComparisonRepository = factoryComparisonRepository,
         ),
     ),
 ) {
@@ -103,35 +103,31 @@ fun LoadRecipeDetailScreen(
 
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("Powder cost / round: ${CurrencyFormatters.formatUsd(uiState.value.powderCostPerRound)}")
-                    Text("Primer cost / round: ${CurrencyFormatters.formatUsd(uiState.value.primerCostPerRound)}")
-                    Text("Bullet cost / round: ${CurrencyFormatters.formatUsd(uiState.value.bulletCostPerRound)}")
-                    Text("Brass cost / round: ${CurrencyFormatters.formatUsd(uiState.value.brassCostPerRound)}")
-                    Text("Total cost / round: ${CurrencyFormatters.formatUsd(uiState.value.totalCostPerRound)}")
-                    Text("Total cost / 50: ${CurrencyFormatters.formatUsd(uiState.value.totalCostPer50)}")
+                    Text("Reload cost / round: ${CurrencyFormatters.formatUsd(uiState.value.totalCostPerRound)}")
+                    Text("Reload cost / 50: ${CurrencyFormatters.formatUsd(uiState.value.totalCostPer50)}")
+                    Text("Reload cost / 100: ${CurrencyFormatters.formatUsd(uiState.value.totalCostPer100)}")
                 }
             }
 
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("Factory / Reference Comparison")
-                    val bestComparison = uiState.value.factoryComparisons.firstOrNull()
-                    if (bestComparison == null) {
-                        Text("No matching reference ammo found for caliber + grain + bullet type filters.")
+                    Text("Factory Comparison")
+                    val factory = uiState.value.matchedFactory
+                    if (factory == null) {
+                        Text("No matching factory cost found by caliber + grain (+ optional bullet type).")
                     } else {
-                        Text("Reference: ${bestComparison.reference.name}")
-                        Text("Reference price / round: ${CurrencyFormatters.formatUsd(bestComparison.reference.pricePerRound)}")
-                        Text("Reference price / 50: ${CurrencyFormatters.formatUsd(bestComparison.reference.pricePer50)}")
-                        Text("Savings / round: ${CurrencyFormatters.formatUsd(bestComparison.savingsPerRound)}")
-                        Text("Savings / 50: ${CurrencyFormatters.formatUsd(bestComparison.savingsPer50)}")
-                        Text("Savings / 1000: ${CurrencyFormatters.formatUsd(bestComparison.savingsPer1000)}")
-                        if (bestComparison.reference.notes.isNotBlank()) {
-                            Text("Notes: ${bestComparison.reference.notes}")
+                        Text("Factory: ${factory.brand} ${factory.productName}")
+                        Text("Factory cost / round: ${CurrencyFormatters.formatUsd(factory.costPerRound)}")
+                        Text("Factory cost / 50: ${CurrencyFormatters.formatUsd(uiState.value.factoryCostPer50)}")
+                        Text("Factory cost / 100: ${CurrencyFormatters.formatUsd(uiState.value.factoryCostPer100)}")
+                        Text("Savings / 50: ${CurrencyFormatters.formatUsd(uiState.value.savingsPer50)}")
+                        Text("Savings / 100: ${CurrencyFormatters.formatUsd(uiState.value.savingsPer100)}")
+                        if (factory.notes.isNotBlank()) {
+                            Text("Notes: ${factory.notes}")
                         }
                     }
                 }
             }
-
         }
     }
 }

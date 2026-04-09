@@ -1,34 +1,22 @@
 package com.example.reloadcostcaluclator.util
 
-import com.example.reloadcostcaluclator.model.FactoryAmmoComparison
-import com.example.reloadcostcaluclator.model.FactoryAmmoReference
+import com.example.reloadcostcaluclator.data.local.entity.FactoryComparisonEntity
 
 object FactoryAmmoComparisonCalculator {
-    fun compare(
+    fun findBestMatch(
         loadCaliber: String,
         loadGrain: Int?,
         loadBulletType: String?,
-        loadCostPerRound: Double,
-        references: List<FactoryAmmoReference>,
-    ): List<FactoryAmmoComparison> {
-        if (loadGrain == null) return emptyList()
+        comparisons: List<FactoryComparisonEntity>,
+    ): FactoryComparisonEntity? {
+        if (loadGrain == null) return null
 
-        return references
+        return comparisons
             .asSequence()
             .filter { matchesCaliber(it.caliber, loadCaliber) }
             .filter { it.grain == loadGrain }
             .filter { bulletTypeMatches(loadBulletType, it.bulletType) }
-            .map { reference ->
-                val savingsPerRound = reference.pricePerRound - loadCostPerRound
-                FactoryAmmoComparison(
-                    reference = reference,
-                    savingsPerRound = savingsPerRound,
-                    savingsPer50 = savingsPerRound * 50,
-                    savingsPer1000 = savingsPerRound * 1_000,
-                )
-            }
-            .sortedByDescending { it.savingsPerRound }
-            .toList()
+            .maxByOrNull { it.updatedAtEpochMillis }
     }
 
     private fun matchesCaliber(referenceCaliber: String, loadCaliber: String): Boolean =
