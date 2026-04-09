@@ -36,6 +36,7 @@ fun DecimalNumberInputField(
         value = value,
         onValueChange = onValueChange,
         keyboardType = KeyboardType.Decimal,
+        allowDecimal = true,
         modifier = modifier,
     )
 }
@@ -52,6 +53,7 @@ fun IntegerNumberInputField(
         value = value,
         onValueChange = onValueChange,
         keyboardType = KeyboardType.Number,
+        allowDecimal = false,
         modifier = modifier,
     )
 }
@@ -62,11 +64,23 @@ private fun NumberInputField(
     value: String,
     onValueChange: (String) -> Unit,
     keyboardType: KeyboardType,
+    allowDecimal: Boolean,
     modifier: Modifier = Modifier,
 ) {
     OutlinedTextField(
         value = value,
-        onValueChange = onValueChange,
+        onValueChange = { nextValue ->
+            val normalized = nextValue.trim()
+            val validInput = if (allowDecimal) {
+                normalized.matches(Regex("^\\d*\\.?\\d*$"))
+            } else {
+                normalized.matches(Regex("^\\d*$"))
+            }
+
+            if (validInput) {
+                onValueChange(normalized)
+            }
+        },
         label = { Text(label) },
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         modifier = modifier.fillMaxWidth(),

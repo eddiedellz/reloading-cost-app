@@ -68,8 +68,8 @@ class OrderEntryViewModel(
 
     fun onExtraChargeModeChanged(value: ExtraChargeMode) = updateState { it.copy(extraChargeMode = value) }
     fun onAllocationMethodChanged(value: ExtraChargeAllocationMethod) = updateState { it.copy(allocationMethod = value) }
-    fun onManualExtraChargesChanged(value: String) = updateState { it.copy(manualExtraCharges = value) }
-    fun onOrderTotalChanged(value: String) = updateState { it.copy(orderTotal = value) }
+    fun onManualExtraChargesChanged(value: String) = updateState { it.copy(manualExtraCharges = sanitizeDecimalInput(value)) }
+    fun onOrderTotalChanged(value: String) = updateState { it.copy(orderTotal = sanitizeDecimalInput(value)) }
 
     fun addItemRow() = updateState { it.copy(items = it.items + OrderEntryItemUi(id = nextId++)) }
 
@@ -82,9 +82,9 @@ class OrderEntryViewModel(
 
     fun onItemNameChanged(id: Long, value: String) = updateItem(id) { it.copy(itemName = value) }
     fun onItemTypeChanged(id: Long, value: ComponentType) = updateItem(id) { it.copy(componentType = value) }
-    fun onUnitPriceChanged(id: Long, value: String) = updateItem(id) { it.copy(unitPrice = value) }
-    fun onPackageQuantityChanged(id: Long, value: String) = updateItem(id) { it.copy(packageQuantity = value) }
-    fun onPurchaseQuantityChanged(id: Long, value: String) = updateItem(id) { it.copy(purchaseQuantity = value) }
+    fun onUnitPriceChanged(id: Long, value: String) = updateItem(id) { it.copy(unitPrice = sanitizeDecimalInput(value)) }
+    fun onPackageQuantityChanged(id: Long, value: String) = updateItem(id) { it.copy(packageQuantity = sanitizeDecimalInput(value)) }
+    fun onPurchaseQuantityChanged(id: Long, value: String) = updateItem(id) { it.copy(purchaseQuantity = sanitizeDecimalInput(value)) }
     fun onUpdateModeChanged(id: Long, value: ComponentUpdateMode) = updateItem(id) { it.copy(updateMode = value) }
 
     fun saveOrder() {
@@ -92,9 +92,9 @@ class OrderEntryViewModel(
         val parsedLines = state.items.map { item ->
             ParsedItem(
                 item = item,
-                unitPrice = item.unitPrice.toBigDecimalOrNull(),
-                packageQuantity = item.packageQuantity.toBigDecimalOrNull(),
-                purchaseQuantity = item.purchaseQuantity.toBigDecimalOrNull(),
+                unitPrice = parseDecimal(item.unitPrice),
+                packageQuantity = parseDecimal(item.packageQuantity),
+                purchaseQuantity = parseDecimal(item.purchaseQuantity),
             )
         }
         val error = when {
@@ -103,8 +103,8 @@ class OrderEntryViewModel(
             parsedLines.any { (it.unitPrice ?: BigDecimal.ZERO) <= BigDecimal.ZERO } -> "Each unit price must be greater than 0."
             parsedLines.any { (it.packageQuantity ?: BigDecimal.ZERO) <= BigDecimal.ZERO } -> "Each package quantity must be greater than 0."
             parsedLines.any { (it.purchaseQuantity ?: BigDecimal.ZERO) <= BigDecimal.ZERO } -> "Each purchase quantity must be greater than 0."
-            state.extraChargeMode == ExtraChargeMode.USE_ORDER_TOTAL && state.orderTotal.toBigDecimalOrNull() == null -> "Enter a valid order total."
-            state.extraChargeMode == ExtraChargeMode.MANUAL_EXTRA_CHARGES && state.manualExtraCharges.toBigDecimalOrNull() == null -> "Enter valid manual extra charges."
+            state.extraChargeMode == ExtraChargeMode.USE_ORDER_TOTAL && parseDecimal(state.orderTotal) == null -> "Enter a valid order total."
+            state.extraChargeMode == ExtraChargeMode.MANUAL_EXTRA_CHARGES && parseDecimal(state.manualExtraCharges) == null -> "Enter valid manual extra charges."
             else -> null
         }
 
@@ -157,14 +157,14 @@ class OrderEntryViewModel(
 
     private fun computeTotals(state: OrderEntryUiState): OrderEntryComputedTotals {
         val rawLines = state.items.map { item ->
-            val unitPrice = item.unitPrice.toBigDecimalOrNull() ?: BigDecimal.ZERO
-            val purchaseQuantity = item.purchaseQuantity.toBigDecimalOrNull() ?: BigDecimal.ZERO
+            val unitPrice = parseDecimalOrZero(item.unitPrice)
+            val purchaseQuantity = parseDecimalOrZero(item.purchaseQuantity)
             Triple(item.id, purchaseQuantity, unitPrice.multiply(purchaseQuantity))
         }
         val subtotal = rawLines.fold(BigDecimal.ZERO) { acc, (_, _, lineSubtotal) -> acc + lineSubtotal }
 
-        val manualExtra = state.manualExtraCharges.toBigDecimalOrNull() ?: BigDecimal.ZERO
-        val enteredOrderTotal = state.orderTotal.toBigDecimalOrNull() ?: BigDecimal.ZERO
+        val manualExtra = parseDecimalOrZero(state.manualExtraCharges)
+        val enteredOrderTotal = parseDecimalOrZero(state.orderTotal)
         val extraCharges = when (state.extraChargeMode) {
             ExtraChargeMode.MANUAL_EXTRA_CHARGES -> manualExtra
             ExtraChargeMode.USE_ORDER_TOTAL -> enteredOrderTotal - subtotal
@@ -248,6 +248,26 @@ class OrderEntryViewModel(
         val packageQuantity: BigDecimal?,
         val purchaseQuantity: BigDecimal?,
     )
+
+    private fun parseDecimal(value: String): BigDecimal? = value.toBigDecimalOrNull()
+
+    private fun parseDecimalOrZero(value: String): BigDecimal = parseDecimal(value) ?: BigDecimal.ZERO
+
+    private fun sanitizeDecimalInput(value: String): String {
+        val normalized = value.trim()
+        val builder = StringBuilder()
+        var hasDot = false
+        normalized.forEach { char ->
+            when {
+                char.isDigit() -> builder.append(char)
+                char == '.' && !hasDot -> {
+                    builder.append(char)
+                    hasDot = true
+                }
+            }
+        }
+        return builder.toString()
+    }
 
     companion object {
         fun provideFactory(repository: PurchaseOrderRepository): ViewModelProvider.Factory =
