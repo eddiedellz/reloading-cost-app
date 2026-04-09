@@ -29,6 +29,7 @@ data class OrderEntryItemUi(
 
 data class OrderEntryComputedLine(
     val id: Long,
+    val baseUnitCost: BigDecimal,
     val lineSubtotal: BigDecimal,
     val allocatedExtra: BigDecimal,
     val adjustedLineTotal: BigDecimal,
@@ -159,9 +160,14 @@ class OrderEntryViewModel(
         val rawLines = state.items.map { item ->
             val unitPrice = parseDecimalOrZero(item.unitPrice)
             val purchaseQuantity = parseDecimalOrZero(item.purchaseQuantity)
-            Triple(item.id, purchaseQuantity, unitPrice.multiply(purchaseQuantity))
+            RawComputedLine(
+                id = item.id,
+                unitPrice = unitPrice,
+                purchaseQuantity = purchaseQuantity,
+                lineSubtotal = unitPrice.multiply(purchaseQuantity),
+            )
         }
-        val subtotal = rawLines.fold(BigDecimal.ZERO) { acc, (_, _, lineSubtotal) -> acc + lineSubtotal }
+        val subtotal = rawLines.fold(BigDecimal.ZERO) { acc, line -> acc + line.lineSubtotal }
 
         val manualExtra = parseDecimalOrZero(state.manualExtraCharges)
         val enteredOrderTotal = parseDecimalOrZero(state.orderTotal)
@@ -172,7 +178,7 @@ class OrderEntryViewModel(
         val orderTotal = subtotal + extraCharges
 
         val extraCents = extraCharges.setScale(2, RoundingMode.HALF_UP)
-        val lineSubtotalCents = rawLines.associate { (id, _, line) -> id to line.setScale(2, RoundingMode.HALF_UP) }
+        val lineSubtotalCents = rawLines.associate { it.id to it.lineSubtotal.setScale(2, RoundingMode.HALF_UP) }
         val lines = allocateExtras(
             rawLines = rawLines,
             subtotal = subtotal,
@@ -190,7 +196,7 @@ class OrderEntryViewModel(
     }
 
     private fun allocateExtras(
-        rawLines: List<Triple<Long, BigDecimal, BigDecimal>>,
+        rawLines: List<RawComputedLine>,
         subtotal: BigDecimal,
         extraCharges: BigDecimal,
         method: ExtraChargeAllocationMethod,
@@ -198,7 +204,7 @@ class OrderEntryViewModel(
     ): Map<Long, OrderEntryComputedLine> {
         if (rawLines.isEmpty()) return emptyMap()
 
-        val ids = rawLines.map { it.first }
+        val ids = rawLines.map { it.id }
         val allocations = mutableMapOf<Long, BigDecimal>()
 
         if (extraCharges == BigDecimal.ZERO) {
@@ -206,17 +212,21 @@ class OrderEntryViewModel(
         } else {
             when (method) {
                 ExtraChargeAllocationMethod.PROPORTIONAL_BY_LINE_SUBTOTAL -> {
-                    rawLines.forEach { (id, _, lineSubtotal) ->
-                        val ratio = if (subtotal == BigDecimal.ZERO) BigDecimal.ZERO else lineSubtotal.divide(subtotal, 12, RoundingMode.HALF_UP)
-                        allocations[id] = extraCharges.multiply(ratio).setScale(2, RoundingMode.HALF_UP)
+                    rawLines.forEach { line ->
+                        val ratio = if (subtotal == BigDecimal.ZERO) {
+                            BigDecimal.ZERO
+                        } else {
+                            line.lineSubtotal.divide(subtotal, 12, RoundingMode.HALF_UP)
+                        }
+                        allocations[line.id] = extraCharges.multiply(ratio).setScale(2, RoundingMode.HALF_UP)
                     }
                 }
 
                 ExtraChargeAllocationMethod.EVEN_BY_QUANTITY -> {
-                    val totalQty = rawLines.fold(BigDecimal.ZERO) { acc, (_, qty, _) -> acc + qty }
-                    rawLines.forEach { (id, qty, _) ->
-                        val ratio = if (totalQty == BigDecimal.ZERO) BigDecimal.ZERO else qty.divide(totalQty, 12, RoundingMode.HALF_UP)
-                        allocations[id] = extraCharges.multiply(ratio).setScale(2, RoundingMode.HALF_UP)
+                    val totalQty = rawLines.fold(BigDecimal.ZERO) { acc, line -> acc + line.purchaseQuantity }
+                    rawLines.forEach { line ->
+                        val ratio = if (totalQty == BigDecimal.ZERO) BigDecimal.ZERO else line.purchaseQuantity.divide(totalQty, 12, RoundingMode.HALF_UP)
+                        allocations[line.id] = extraCharges.multiply(ratio).setScale(2, RoundingMode.HALF_UP)
                     }
                 }
             }
@@ -227,13 +237,18 @@ class OrderEntryViewModel(
             allocations[lastId] = (allocations[lastId] ?: BigDecimal.ZERO) + remainder
         }
 
-        return rawLines.associate { (id, qty, _) ->
-            val lineSubtotalRounded = lineSubtotalCents[id] ?: BigDecimal.ZERO
-            val allocated = allocations[id] ?: BigDecimal.ZERO
+        return rawLines.associate { line ->
+            val lineSubtotalRounded = lineSubtotalCents[line.id] ?: BigDecimal.ZERO
+            val allocated = allocations[line.id] ?: BigDecimal.ZERO
             val adjustedLineTotal = lineSubtotalRounded + allocated
-            val adjustedUnitCost = if (qty == BigDecimal.ZERO) BigDecimal.ZERO else adjustedLineTotal.divide(qty, 6, RoundingMode.HALF_UP)
-            id to OrderEntryComputedLine(
-                id = id,
+            val adjustedUnitCost = if (line.purchaseQuantity == BigDecimal.ZERO) {
+                BigDecimal.ZERO
+            } else {
+                adjustedLineTotal.divide(line.purchaseQuantity, 6, RoundingMode.HALF_UP)
+            }
+            line.id to OrderEntryComputedLine(
+                id = line.id,
+                baseUnitCost = line.unitPrice,
                 lineSubtotal = lineSubtotalRounded,
                 allocatedExtra = allocated.setScale(2, RoundingMode.HALF_UP),
                 adjustedLineTotal = adjustedLineTotal.setScale(2, RoundingMode.HALF_UP),
@@ -242,6 +257,13 @@ class OrderEntryViewModel(
         }
     }
 
+    private data class RawComputedLine(
+        val id: Long,
+        val unitPrice: BigDecimal,
+        val purchaseQuantity: BigDecimal,
+        val lineSubtotal: BigDecimal,
+    )
+
     private data class ParsedItem(
         val item: OrderEntryItemUi,
         val unitPrice: BigDecimal?,
@@ -249,12 +271,12 @@ class OrderEntryViewModel(
         val purchaseQuantity: BigDecimal?,
     )
 
-    private fun parseDecimal(value: String): BigDecimal? = value.toBigDecimalOrNull()
+    private fun parseDecimal(value: String): BigDecimal? = value.toDoubleOrNull()?.let(BigDecimal::valueOf)
 
     private fun parseDecimalOrZero(value: String): BigDecimal = parseDecimal(value) ?: BigDecimal.ZERO
 
     private fun sanitizeDecimalInput(value: String): String {
-        val normalized = value.trim()
+        val normalized = value
         val builder = StringBuilder()
         var hasDot = false
         normalized.forEach { char ->
