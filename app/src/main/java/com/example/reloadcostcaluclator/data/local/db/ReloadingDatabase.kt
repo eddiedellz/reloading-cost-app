@@ -37,7 +37,7 @@ import com.example.reloadcostcaluclator.data.local.entity.PurchaseOrderItemEntit
         ComponentPriceHistoryEntity::class,
         FactoryComparisonEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = false,
 )
 abstract class ReloadingDatabase : RoomDatabase() {
@@ -200,6 +200,91 @@ object ReloadingDatabaseMigrations {
                 )
                 """.trimIndent(),
             )
+        }
+    }
+
+
+    val MIGRATION_5_6 = object : Migration(5, 6) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS purchase_orders_new (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    purchaseDateEpochMillis INTEGER NOT NULL,
+                    extraChargeMode TEXT NOT NULL,
+                    allocationMethod TEXT NOT NULL,
+                    totalCents INTEGER NOT NULL,
+                    extraChargesCents INTEGER NOT NULL,
+                    subtotalCents INTEGER NOT NULL
+                )
+                """.trimIndent(),
+            )
+            database.execSQL(
+                """
+                INSERT INTO purchase_orders_new (
+                    id, purchaseDateEpochMillis, extraChargeMode, allocationMethod, totalCents, extraChargesCents, subtotalCents
+                )
+                SELECT
+                    id,
+                    purchaseDateEpochMillis,
+                    extraChargeMode,
+                    allocationMethod,
+                    CAST(ROUND(orderTotal * 100.0) AS INTEGER),
+                    CAST(ROUND(extraChargesTotal * 100.0) AS INTEGER),
+                    CAST(ROUND(subtotal * 100.0) AS INTEGER)
+                FROM purchase_orders
+                """.trimIndent(),
+            )
+            database.execSQL("DROP TABLE purchase_orders")
+            database.execSQL("ALTER TABLE purchase_orders_new RENAME TO purchase_orders")
+
+            database.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS purchase_order_items_new (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    orderId INTEGER NOT NULL,
+                    componentType TEXT NOT NULL,
+                    itemName TEXT NOT NULL,
+                    unitPriceCents INTEGER NOT NULL,
+                    packageQuantity REAL NOT NULL,
+                    purchaseQuantity REAL NOT NULL,
+                    lineSubtotalCents INTEGER NOT NULL,
+                    allocatedExtraChargeCents INTEGER NOT NULL,
+                    originalUnitCostCents INTEGER NOT NULL,
+                    adjustedUnitCostCents INTEGER NOT NULL,
+                    adjustedLineTotalCents INTEGER NOT NULL,
+                    landedCostCents INTEGER NOT NULL,
+                    FOREIGN KEY(orderId) REFERENCES purchase_orders(id) ON DELETE CASCADE
+                )
+                """.trimIndent(),
+            )
+            database.execSQL(
+                """
+                INSERT INTO purchase_order_items_new (
+                    id, orderId, componentType, itemName, unitPriceCents, packageQuantity, purchaseQuantity,
+                    lineSubtotalCents, allocatedExtraChargeCents, originalUnitCostCents, adjustedUnitCostCents,
+                    adjustedLineTotalCents, landedCostCents
+                )
+                SELECT
+                    id,
+                    orderId,
+                    componentType,
+                    itemName,
+                    CAST(ROUND(unitPrice * 100.0) AS INTEGER),
+                    packageQuantity,
+                    purchaseQuantity,
+                    CAST(ROUND(lineSubtotal * 100.0) AS INTEGER),
+                    CAST(ROUND(allocatedExtraCharge * 100.0) AS INTEGER),
+                    CAST(ROUND(originalUnitCost * 100.0) AS INTEGER),
+                    CAST(ROUND(adjustedUnitCost * 100.0) AS INTEGER),
+                    CAST(ROUND(adjustedLineTotal * 100.0) AS INTEGER),
+                    CAST(ROUND(landedCost * 100.0) AS INTEGER)
+                FROM purchase_order_items
+                """.trimIndent(),
+            )
+            database.execSQL("DROP TABLE purchase_order_items")
+            database.execSQL("ALTER TABLE purchase_order_items_new RENAME TO purchase_order_items")
+            database.execSQL("CREATE INDEX IF NOT EXISTS index_purchase_order_items_orderId ON purchase_order_items(orderId)")
         }
     }
 }

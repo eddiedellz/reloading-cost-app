@@ -24,6 +24,7 @@ class AppContainer(context: Context) {
                 ReloadingDatabaseMigrations.MIGRATION_2_3,
                 ReloadingDatabaseMigrations.MIGRATION_3_4,
                 ReloadingDatabaseMigrations.MIGRATION_4_5,
+                ReloadingDatabaseMigrations.MIGRATION_5_6,
             )
             .build()
     }

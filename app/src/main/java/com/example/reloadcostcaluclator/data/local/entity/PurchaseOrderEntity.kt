@@ -10,8 +10,7 @@ data class PurchaseOrderEntity(
     val purchaseDateEpochMillis: Long,
     val extraChargeMode: String,
     val allocationMethod: String,
-    val orderTotal: Double,
-    val extraChargesTotal: Double,
-    val subtotal: Double,
-    val grandTotal: Double,
+    val totalCents: Int,
+    val extraChargesCents: Int,
+    val subtotalCents: Int,
 )

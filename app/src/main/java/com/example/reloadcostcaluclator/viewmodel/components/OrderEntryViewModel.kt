@@ -1,5 +1,6 @@
 package com.example.reloadcostcaluclator.viewmodel.components
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -29,17 +30,17 @@ data class OrderEntryItemUi(
 
 data class OrderEntryComputedLine(
     val id: Long,
-    val baseUnitCost: BigDecimal,
-    val lineSubtotal: BigDecimal,
-    val allocatedExtra: BigDecimal,
-    val adjustedLineTotal: BigDecimal,
-    val adjustedUnitCost: BigDecimal,
+    val unitPriceCents: Int,
+    val lineSubtotalCents: Int,
+    val allocatedExtraCents: Int,
+    val adjustedLineTotalCents: Int,
+    val adjustedUnitCostCents: Int,
 )
 
 data class OrderEntryComputedTotals(
-    val subtotal: BigDecimal,
-    val extraCharges: BigDecimal,
-    val orderTotal: BigDecimal,
+    val subtotalCents: Int,
+    val extraChargesCents: Int,
+    val totalCents: Int,
     val lines: Map<Long, OrderEntryComputedLine>,
 )
 
@@ -51,9 +52,9 @@ data class OrderEntryUiState(
     val manualExtraCharges: String = "",
     val items: List<OrderEntryItemUi> = listOf(OrderEntryItemUi(id = 1L)),
     val computed: OrderEntryComputedTotals = OrderEntryComputedTotals(
-        subtotal = BigDecimal.ZERO,
-        extraCharges = BigDecimal.ZERO,
-        orderTotal = BigDecimal.ZERO,
+        subtotalCents = 0,
+        extraChargesCents = 0,
+        totalCents = 0,
         lines = emptyMap(),
     ),
     val errorMessage: String? = null,
@@ -69,8 +70,8 @@ class OrderEntryViewModel(
 
     fun onExtraChargeModeChanged(value: ExtraChargeMode) = updateState { it.copy(extraChargeMode = value) }
     fun onAllocationMethodChanged(value: ExtraChargeAllocationMethod) = updateState { it.copy(allocationMethod = value) }
-    fun onManualExtraChargesChanged(value: String) = updateState { it.copy(manualExtraCharges = sanitizeDecimalInput(value)) }
-    fun onOrderTotalChanged(value: String) = updateState { it.copy(orderTotal = sanitizeDecimalInput(value)) }
+    fun onManualExtraChargesChanged(value: String) = updateState { it.copy(manualExtraCharges = sanitizeMoneyInput(value)) }
+    fun onOrderTotalChanged(value: String) = updateState { it.copy(orderTotal = sanitizeMoneyInput(value)) }
 
     fun addItemRow() = updateState { it.copy(items = it.items + OrderEntryItemUi(id = nextId++)) }
 
@@ -83,7 +84,7 @@ class OrderEntryViewModel(
 
     fun onItemNameChanged(id: Long, value: String) = updateItem(id) { it.copy(itemName = value) }
     fun onItemTypeChanged(id: Long, value: ComponentType) = updateItem(id) { it.copy(componentType = value) }
-    fun onUnitPriceChanged(id: Long, value: String) = updateItem(id) { it.copy(unitPrice = sanitizeDecimalInput(value)) }
+    fun onUnitPriceChanged(id: Long, value: String) = updateItem(id) { it.copy(unitPrice = sanitizeMoneyInput(value)) }
     fun onPackageQuantityChanged(id: Long, value: String) = updateItem(id) { it.copy(packageQuantity = sanitizeDecimalInput(value)) }
     fun onPurchaseQuantityChanged(id: Long, value: String) = updateItem(id) { it.copy(purchaseQuantity = sanitizeDecimalInput(value)) }
     fun onUpdateModeChanged(id: Long, value: ComponentUpdateMode) = updateItem(id) { it.copy(updateMode = value) }
@@ -93,19 +94,20 @@ class OrderEntryViewModel(
         val parsedLines = state.items.map { item ->
             ParsedItem(
                 item = item,
-                unitPrice = parseDecimal(item.unitPrice),
-                packageQuantity = parseDecimal(item.packageQuantity),
-                purchaseQuantity = parseDecimal(item.purchaseQuantity),
+                unitPriceCents = parseMoneyToCents(item.unitPrice),
+                packageQuantity = parseQuantity(item.packageQuantity),
+                purchaseQuantity = parseQuantity(item.purchaseQuantity),
             )
         }
+
         val error = when {
             parsedLines.isEmpty() -> "Add at least one item."
             parsedLines.any { it.item.itemName.isBlank() } -> "Each item needs a name."
-            parsedLines.any { (it.unitPrice ?: BigDecimal.ZERO) <= BigDecimal.ZERO } -> "Each unit price must be greater than 0."
-            parsedLines.any { (it.packageQuantity ?: BigDecimal.ZERO) <= BigDecimal.ZERO } -> "Each package quantity must be greater than 0."
-            parsedLines.any { (it.purchaseQuantity ?: BigDecimal.ZERO) <= BigDecimal.ZERO } -> "Each purchase quantity must be greater than 0."
-            state.extraChargeMode == ExtraChargeMode.USE_ORDER_TOTAL && parseDecimal(state.orderTotal) == null -> "Enter a valid order total."
-            state.extraChargeMode == ExtraChargeMode.MANUAL_EXTRA_CHARGES && parseDecimal(state.manualExtraCharges) == null -> "Enter valid manual extra charges."
+            parsedLines.any { (it.unitPriceCents ?: 0) <= 0 } -> "Each unit price must be greater than 0."
+            parsedLines.any { (it.packageQuantity ?: 0.0) <= 0.0 } -> "Each package quantity must be greater than 0."
+            parsedLines.any { (it.purchaseQuantity ?: 0.0) <= 0.0 } -> "Each purchase quantity must be greater than 0."
+            state.extraChargeMode == ExtraChargeMode.USE_ORDER_TOTAL && parseMoneyToCents(state.orderTotal) == null -> "Enter a valid order total."
+            state.extraChargeMode == ExtraChargeMode.MANUAL_EXTRA_CHARGES && parseMoneyToCents(state.manualExtraCharges) == null -> "Enter valid manual extra charges."
             else -> null
         }
 
@@ -115,31 +117,37 @@ class OrderEntryViewModel(
         }
 
         viewModelScope.launch {
-            repository.createOrder(
-                purchaseDateEpochMillis = System.currentTimeMillis(),
-                extraChargeMode = state.extraChargeMode,
-                allocationMethod = state.allocationMethod,
-                orderTotal = state.computed.orderTotal.toDouble(),
-                extraChargesTotal = state.computed.extraCharges.toDouble(),
-                subtotal = state.computed.subtotal.toDouble(),
-                items = parsedLines.map { parsed ->
-                    val line = state.computed.lines.getValue(parsed.item.id)
-                    CreateOrderItemInput(
-                        componentType = parsed.item.componentType,
-                        itemName = parsed.item.itemName.trim(),
-                        unitPrice = parsed.unitPrice!!.toDouble(),
-                        packageQuantity = parsed.packageQuantity!!.toDouble(),
-                        purchaseQuantity = parsed.purchaseQuantity!!.toDouble(),
-                        lineSubtotal = line.lineSubtotal.toDouble(),
-                        allocatedExtraCharge = line.allocatedExtra.toDouble(),
-                        originalUnitCost = parsed.unitPrice.toDouble(),
-                        adjustedUnitCost = line.adjustedUnitCost.toDouble(),
-                        adjustedLineTotal = line.adjustedLineTotal.toDouble(),
-                        updateMode = parsed.item.updateMode,
-                    )
-                },
-            )
-            _uiState.update { OrderEntryUiState(saved = true) }
+            runCatching {
+                repository.createOrder(
+                    purchaseDateEpochMillis = System.currentTimeMillis(),
+                    extraChargeMode = state.extraChargeMode,
+                    allocationMethod = state.allocationMethod,
+                    totalCents = state.computed.totalCents,
+                    extraChargesCents = state.computed.extraChargesCents,
+                    subtotalCents = state.computed.subtotalCents,
+                    items = parsedLines.map { parsed ->
+                        val line = state.computed.lines.getValue(parsed.item.id)
+                        CreateOrderItemInput(
+                            componentType = parsed.item.componentType,
+                            itemName = parsed.item.itemName.trim(),
+                            unitPriceCents = parsed.unitPriceCents!!,
+                            packageQuantity = parsed.packageQuantity!!,
+                            purchaseQuantity = parsed.purchaseQuantity!!,
+                            lineSubtotalCents = line.lineSubtotalCents,
+                            allocatedExtraChargeCents = line.allocatedExtraCents,
+                            originalUnitCostCents = line.unitPriceCents,
+                            adjustedUnitCostCents = line.adjustedUnitCostCents,
+                            adjustedLineTotalCents = line.adjustedLineTotalCents,
+                            updateMode = parsed.item.updateMode,
+                        )
+                    },
+                )
+            }.onSuccess {
+                _uiState.update { OrderEntryUiState(saved = true) }
+            }.onFailure { errorThrowable ->
+                Log.e(TAG, "Crash path: saveOrder failed during repository save/mapping.", errorThrowable)
+                _uiState.update { it.copy(errorMessage = "Unable to save order. Check logs for details.") }
+            }
         }
     }
 
@@ -152,134 +160,176 @@ class OrderEntryViewModel(
     private fun updateState(block: (OrderEntryUiState) -> OrderEntryUiState) {
         _uiState.update { current ->
             val updated = block(current).copy(errorMessage = null)
-            updated.copy(computed = computeTotals(updated))
+            updated.copy(computed = computeTotalsSafely(updated))
         }
+    }
+
+    private fun computeTotalsSafely(state: OrderEntryUiState): OrderEntryComputedTotals {
+        return runCatching { computeTotals(state) }
+            .onFailure { throwable ->
+                Log.e(TAG, "Crash path: summary calculation failed.", throwable)
+            }
+            .getOrElse { OrderEntryComputedTotals(0, 0, 0, emptyMap()) }
     }
 
     private fun computeTotals(state: OrderEntryUiState): OrderEntryComputedTotals {
         val rawLines = state.items.map { item ->
-            val unitPrice = parseDecimalOrZero(item.unitPrice)
-            val purchaseQuantity = parseDecimalOrZero(item.purchaseQuantity)
+            val unitPriceCents = parseMoneyToCents(item.unitPrice) ?: 0
+            val purchaseQuantity = parseQuantity(item.purchaseQuantity) ?: 0.0
+            val lineSubtotalCents = multiplyMoneyByQuantity(unitPriceCents, purchaseQuantity)
             RawComputedLine(
                 id = item.id,
-                unitPrice = unitPrice,
+                unitPriceCents = unitPriceCents,
                 purchaseQuantity = purchaseQuantity,
-                lineSubtotal = unitPrice.multiply(purchaseQuantity),
+                lineSubtotalCents = lineSubtotalCents,
             )
         }
-        val subtotal = rawLines.fold(BigDecimal.ZERO) { acc, line -> acc + line.lineSubtotal }
 
-        val manualExtra = parseDecimalOrZero(state.manualExtraCharges)
-        val enteredOrderTotal = parseDecimalOrZero(state.orderTotal)
-        val extraCharges = when (state.extraChargeMode) {
-            ExtraChargeMode.MANUAL_EXTRA_CHARGES -> manualExtra
-            ExtraChargeMode.USE_ORDER_TOTAL -> enteredOrderTotal - subtotal
+        val subtotalCents = rawLines.sumOf { it.lineSubtotalCents }
+        val manualExtraCents = parseMoneyToCents(state.manualExtraCharges) ?: 0
+        val enteredOrderTotalCents = parseMoneyToCents(state.orderTotal) ?: 0
+        val extraChargesCents = when (state.extraChargeMode) {
+            ExtraChargeMode.MANUAL_EXTRA_CHARGES -> manualExtraCents
+            ExtraChargeMode.USE_ORDER_TOTAL -> enteredOrderTotalCents - subtotalCents
         }
-        val orderTotal = subtotal + extraCharges
+        val totalCents = subtotalCents + extraChargesCents
 
-        val extraCents = extraCharges.setScale(2, RoundingMode.HALF_UP)
-        val lineSubtotalCents = rawLines.associate { it.id to it.lineSubtotal.setScale(2, RoundingMode.HALF_UP) }
         val lines = allocateExtras(
             rawLines = rawLines,
-            subtotal = subtotal,
-            extraCharges = extraCents,
+            subtotalCents = subtotalCents,
+            extraChargesCents = extraChargesCents,
             method = state.allocationMethod,
-            lineSubtotalCents = lineSubtotalCents,
         )
 
         return OrderEntryComputedTotals(
-            subtotal = subtotal.setScale(2, RoundingMode.HALF_UP),
-            extraCharges = extraCents,
-            orderTotal = orderTotal.setScale(2, RoundingMode.HALF_UP),
+            subtotalCents = subtotalCents,
+            extraChargesCents = extraChargesCents,
+            totalCents = totalCents,
             lines = lines,
         )
     }
 
     private fun allocateExtras(
         rawLines: List<RawComputedLine>,
-        subtotal: BigDecimal,
-        extraCharges: BigDecimal,
+        subtotalCents: Int,
+        extraChargesCents: Int,
         method: ExtraChargeAllocationMethod,
-        lineSubtotalCents: Map<Long, BigDecimal>,
     ): Map<Long, OrderEntryComputedLine> {
         if (rawLines.isEmpty()) return emptyMap()
 
-        val ids = rawLines.map { it.id }
-        val allocations = mutableMapOf<Long, BigDecimal>()
-
-        if (extraCharges == BigDecimal.ZERO) {
-            ids.forEach { allocations[it] = BigDecimal.ZERO }
+        val allocations = mutableMapOf<Long, Int>()
+        if (extraChargesCents == 0) {
+            rawLines.forEach { allocations[it.id] = 0 }
         } else {
-            when (method) {
-                ExtraChargeAllocationMethod.PROPORTIONAL_BY_LINE_SUBTOTAL -> {
-                    rawLines.forEach { line ->
-                        val ratio = if (subtotal == BigDecimal.ZERO) {
-                            BigDecimal.ZERO
-                        } else {
-                            line.lineSubtotal.divide(subtotal, 12, RoundingMode.HALF_UP)
-                        }
-                        allocations[line.id] = extraCharges.multiply(ratio).setScale(2, RoundingMode.HALF_UP)
-                    }
-                }
-
-                ExtraChargeAllocationMethod.EVEN_BY_QUANTITY -> {
-                    val totalQty = rawLines.fold(BigDecimal.ZERO) { acc, line -> acc + line.purchaseQuantity }
-                    rawLines.forEach { line ->
-                        val ratio = if (totalQty == BigDecimal.ZERO) BigDecimal.ZERO else line.purchaseQuantity.divide(totalQty, 12, RoundingMode.HALF_UP)
-                        allocations[line.id] = extraCharges.multiply(ratio).setScale(2, RoundingMode.HALF_UP)
-                    }
-                }
+            val totalWeight = when (method) {
+                ExtraChargeAllocationMethod.PROPORTIONAL_BY_LINE_SUBTOTAL -> rawLines.sumOf { it.lineSubtotalCents.toLong() }.toDouble()
+                ExtraChargeAllocationMethod.EVEN_BY_QUANTITY -> rawLines.sumOf { it.purchaseQuantity }
             }
 
-            val allocatedSum = allocations.values.fold(BigDecimal.ZERO) { acc, value -> acc + value }
-            val remainder = extraCharges - allocatedSum
-            val lastId = ids.last()
-            allocations[lastId] = (allocations[lastId] ?: BigDecimal.ZERO) + remainder
+            var allocatedSoFar = 0
+            rawLines.forEachIndexed { index, line ->
+                val isLast = index == rawLines.lastIndex
+                val amount = if (isLast) {
+                    extraChargesCents - allocatedSoFar
+                } else {
+                    val weight = when (method) {
+                        ExtraChargeAllocationMethod.PROPORTIONAL_BY_LINE_SUBTOTAL -> line.lineSubtotalCents.toDouble()
+                        ExtraChargeAllocationMethod.EVEN_BY_QUANTITY -> line.purchaseQuantity
+                    }
+                    if (totalWeight == 0.0) 0 else ((extraChargesCents * weight) / totalWeight).toInt()
+                }
+                allocations[line.id] = amount
+                allocatedSoFar += amount
+            }
         }
 
         return rawLines.associate { line ->
-            val lineSubtotalRounded = lineSubtotalCents[line.id] ?: BigDecimal.ZERO
-            val allocated = allocations[line.id] ?: BigDecimal.ZERO
-            val adjustedLineTotal = lineSubtotalRounded + allocated
-            val adjustedUnitCost = if (line.purchaseQuantity == BigDecimal.ZERO) {
-                BigDecimal.ZERO
-            } else {
-                adjustedLineTotal.divide(line.purchaseQuantity, 6, RoundingMode.HALF_UP)
+            val allocated = allocations[line.id] ?: 0
+            val adjustedLineTotal = line.lineSubtotalCents + allocated
+            val adjustedUnitCents = if (line.purchaseQuantity <= 0.0) 0 else {
+                BigDecimal(adjustedLineTotal)
+                    .divide(BigDecimal.valueOf(line.purchaseQuantity), 0, RoundingMode.HALF_UP)
+                    .toInt()
             }
+
             line.id to OrderEntryComputedLine(
                 id = line.id,
-                baseUnitCost = line.unitPrice,
-                lineSubtotal = lineSubtotalRounded,
-                allocatedExtra = allocated.setScale(2, RoundingMode.HALF_UP),
-                adjustedLineTotal = adjustedLineTotal.setScale(2, RoundingMode.HALF_UP),
-                adjustedUnitCost = adjustedUnitCost,
+                unitPriceCents = line.unitPriceCents,
+                lineSubtotalCents = line.lineSubtotalCents,
+                allocatedExtraCents = allocated,
+                adjustedLineTotalCents = adjustedLineTotal,
+                adjustedUnitCostCents = adjustedUnitCents,
             )
         }
     }
 
     private data class RawComputedLine(
         val id: Long,
-        val unitPrice: BigDecimal,
-        val purchaseQuantity: BigDecimal,
-        val lineSubtotal: BigDecimal,
+        val unitPriceCents: Int,
+        val purchaseQuantity: Double,
+        val lineSubtotalCents: Int,
     )
 
     private data class ParsedItem(
         val item: OrderEntryItemUi,
-        val unitPrice: BigDecimal?,
-        val packageQuantity: BigDecimal?,
-        val purchaseQuantity: BigDecimal?,
+        val unitPriceCents: Int?,
+        val packageQuantity: Double?,
+        val purchaseQuantity: Double?,
     )
 
-    private fun parseDecimal(value: String): BigDecimal? = value.toDoubleOrNull()?.let(BigDecimal::valueOf)
+    private fun parseMoneyToCents(value: String): Int? {
+        val normalized = value.trim()
+        if (normalized.isEmpty() || normalized == ".") return null
+        if (!normalized.matches(Regex("^\\d*\\.?\\d{0,2}$"))) return null
 
-    private fun parseDecimalOrZero(value: String): BigDecimal = parseDecimal(value) ?: BigDecimal.ZERO
+        val parts = normalized.split('.')
+        val whole = parts[0].ifEmpty { "0" }
+        val frac = parts.getOrElse(1) { "" }.padEnd(2, '0')
+        val wholeCents = whole.toLongOrNull()?.times(100L) ?: return null
+        val fracCents = frac.take(2).toLongOrNull() ?: return null
+        val total = wholeCents + fracCents
+        return total.coerceIn(Int.MIN_VALUE.toLong(), Int.MAX_VALUE.toLong()).toInt()
+    }
 
-    private fun sanitizeDecimalInput(value: String): String {
-        val normalized = value
+    private fun multiplyMoneyByQuantity(cents: Int, quantity: Double): Int {
+        if (quantity <= 0.0) return 0
+        return BigDecimal(cents)
+            .multiply(BigDecimal.valueOf(quantity))
+            .setScale(0, RoundingMode.HALF_UP)
+            .toInt()
+    }
+
+    private fun parseQuantity(value: String): Double? {
+        val normalized = value.trim()
+        if (normalized.isEmpty() || normalized == ".") return null
+        return normalized.toDoubleOrNull()
+    }
+
+    private fun sanitizeMoneyInput(value: String): String {
         val builder = StringBuilder()
         var hasDot = false
-        normalized.forEach { char ->
+        var decimalCount = 0
+
+        value.forEach { char ->
+            when {
+                char.isDigit() && (!hasDot || decimalCount < 2) -> {
+                    builder.append(char)
+                    if (hasDot) decimalCount++
+                }
+
+                char == '.' && !hasDot -> {
+                    builder.append(char)
+                    hasDot = true
+                }
+            }
+        }
+        return builder.toString()
+    }
+
+    private fun sanitizeDecimalInput(value: String): String {
+        val builder = StringBuilder()
+        var hasDot = false
+        value.forEach { char ->
             when {
                 char.isDigit() -> builder.append(char)
                 char == '.' && !hasDot -> {
@@ -292,6 +342,8 @@ class OrderEntryViewModel(
     }
 
     companion object {
+        private const val TAG = "OrderEntryViewModel"
+
         fun provideFactory(repository: PurchaseOrderRepository): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
