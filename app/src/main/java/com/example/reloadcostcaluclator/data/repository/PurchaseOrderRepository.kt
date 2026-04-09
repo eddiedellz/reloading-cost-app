@@ -1,5 +1,6 @@
 package com.example.reloadcostcaluclator.data.repository
 
+import android.util.Log
 import androidx.room.withTransaction
 import com.example.reloadcostcaluclator.data.local.dao.BrassDao
 import com.example.reloadcostcaluclator.data.local.dao.BulletDao
@@ -25,14 +26,14 @@ import kotlin.math.max
 data class CreateOrderItemInput(
     val componentType: ComponentType,
     val itemName: String,
-    val unitPrice: Double,
+    val unitPriceCents: Int,
     val packageQuantity: Double,
     val purchaseQuantity: Double,
-    val lineSubtotal: Double,
-    val allocatedExtraCharge: Double,
-    val originalUnitCost: Double,
-    val adjustedUnitCost: Double,
-    val adjustedLineTotal: Double,
+    val lineSubtotalCents: Int,
+    val allocatedExtraChargeCents: Int,
+    val originalUnitCostCents: Int,
+    val adjustedUnitCostCents: Int,
+    val adjustedLineTotalCents: Int,
     val updateMode: ComponentUpdateMode,
 )
 
@@ -61,71 +62,75 @@ class PurchaseOrderRepository(
         purchaseDateEpochMillis: Long,
         extraChargeMode: ExtraChargeMode,
         allocationMethod: ExtraChargeAllocationMethod,
-        orderTotal: Double,
-        extraChargesTotal: Double,
-        subtotal: Double,
+        totalCents: Int,
+        extraChargesCents: Int,
+        subtotalCents: Int,
         items: List<CreateOrderItemInput>,
     ) {
-        if (items.isEmpty() || subtotal <= 0.0) return
+        if (items.isEmpty() || subtotalCents <= 0) return
 
-        database.withTransaction {
-            val orderId = purchaseOrderDao.insertOrder(
-                PurchaseOrderEntity(
-                    purchaseDateEpochMillis = purchaseDateEpochMillis,
-                    extraChargeMode = extraChargeMode.name,
-                    allocationMethod = allocationMethod.name,
-                    orderTotal = orderTotal,
-                    extraChargesTotal = extraChargesTotal,
-                    subtotal = subtotal,
-                    grandTotal = subtotal + extraChargesTotal,
-                ),
-            )
-
-            val orderItemEntities = items.map {
-                PurchaseOrderItemEntity(
-                    orderId = orderId,
-                    componentType = it.componentType.name,
-                    itemName = it.itemName.trim(),
-                    unitPrice = it.unitPrice,
-                    packageQuantity = it.packageQuantity,
-                    purchaseQuantity = it.purchaseQuantity,
-                    lineSubtotal = it.lineSubtotal,
-                    allocatedExtraCharge = it.allocatedExtraCharge,
-                    originalUnitCost = it.originalUnitCost,
-                    adjustedUnitCost = it.adjustedUnitCost,
-                    adjustedLineTotal = it.adjustedLineTotal,
-                    landedCost = it.adjustedLineTotal,
+        runCatching {
+            database.withTransaction {
+                val orderId = purchaseOrderDao.insertOrder(
+                    PurchaseOrderEntity(
+                        purchaseDateEpochMillis = purchaseDateEpochMillis,
+                        extraChargeMode = extraChargeMode.name,
+                        allocationMethod = allocationMethod.name,
+                        totalCents = totalCents,
+                        extraChargesCents = extraChargesCents,
+                        subtotalCents = subtotalCents,
+                    ),
                 )
-            }
-            val orderItemIds = purchaseOrderDao.insertOrderItems(orderItemEntities)
 
-            val historyRecords = orderItemEntities.zip(orderItemIds).map { (item, itemId) ->
-                ComponentPriceHistoryEntity(
-                    componentType = item.componentType,
-                    componentId = null,
-                    componentName = item.itemName,
-                    purchaseDateEpochMillis = purchaseDateEpochMillis,
-                    orderId = orderId,
-                    orderItemId = itemId,
-                    quantity = item.packageQuantity * item.purchaseQuantity,
-                    landedCost = item.landedCost,
-                )
-            }
-            priceHistoryDao.insertAll(historyRecords)
+                val orderItemEntities = items.map {
+                    PurchaseOrderItemEntity(
+                        orderId = orderId,
+                        componentType = it.componentType.name,
+                        itemName = it.itemName.trim(),
+                        unitPriceCents = it.unitPriceCents,
+                        packageQuantity = it.packageQuantity,
+                        purchaseQuantity = it.purchaseQuantity,
+                        lineSubtotalCents = it.lineSubtotalCents,
+                        allocatedExtraChargeCents = it.allocatedExtraChargeCents,
+                        originalUnitCostCents = it.originalUnitCostCents,
+                        adjustedUnitCostCents = it.adjustedUnitCostCents,
+                        adjustedLineTotalCents = it.adjustedLineTotalCents,
+                        landedCostCents = it.adjustedLineTotalCents,
+                    )
+                }
+                val orderItemIds = purchaseOrderDao.insertOrderItems(orderItemEntities)
 
-            items.zip(orderItemEntities).forEach { (input, itemEntity) ->
-                if (input.updateMode == ComponentUpdateMode.HISTORY_ONLY) return@forEach
-                applyComponentUpdate(
-                    input = input,
-                    landedCost = itemEntity.landedCost,
-                    quantity = max(0.000001, itemEntity.packageQuantity * itemEntity.purchaseQuantity),
-                )
-            }
+                val historyRecords = orderItemEntities.zip(orderItemIds).map { (item, itemId) ->
+                    ComponentPriceHistoryEntity(
+                        componentType = item.componentType,
+                        componentId = null,
+                        componentName = item.itemName,
+                        purchaseDateEpochMillis = purchaseDateEpochMillis,
+                        orderId = orderId,
+                        orderItemId = itemId,
+                        quantity = item.packageQuantity * item.purchaseQuantity,
+                        landedCost = centsToDollars(item.landedCostCents),
+                    )
+                }
+                priceHistoryDao.insertAll(historyRecords)
 
-            val mapped = historyRecords.map { history ->
-                history.copy(componentId = findComponentId(ComponentType.valueOf(history.componentType), history.componentName))
+                items.zip(orderItemEntities).forEach { (input, itemEntity) ->
+                    if (input.updateMode == ComponentUpdateMode.HISTORY_ONLY) return@forEach
+                    applyComponentUpdate(
+                        input = input,
+                        landedCost = centsToDollars(itemEntity.landedCostCents),
+                        quantity = max(0.000001, itemEntity.packageQuantity * itemEntity.purchaseQuantity),
+                    )
+                }
+
+                val mapped = historyRecords.map { history ->
+                    history.copy(componentId = findComponentId(ComponentType.valueOf(history.componentType), history.componentName))
+                }
+                priceHistoryDao.insertAll(mapped)
             }
-            priceHistoryDao.insertAll(mapped)
+        }.onFailure { throwable ->
+            Log.e(TAG, "Crash path: repository createOrder failed during save/mapping.", throwable)
+            throw throwable
         }
     }
 
@@ -280,5 +285,11 @@ class PurchaseOrderRepository(
             ComponentType.BULLET -> bulletDao.getByName(name)?.id
             ComponentType.BRASS -> brassDao.getByName(name)?.id
         }
+    }
+
+    private fun centsToDollars(cents: Int): Double = cents / 100.0
+
+    companion object {
+        private const val TAG = "PurchaseOrderRepository"
     }
 }

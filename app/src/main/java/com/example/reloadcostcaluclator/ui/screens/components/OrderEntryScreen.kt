@@ -90,9 +90,9 @@ fun OrderEntryScreen(
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("Subtotal: ${CurrencyFormatters.formatUsd(uiState.value.computed.subtotal.toDouble())}")
-                        Text("Extra charges: ${CurrencyFormatters.formatUsd(uiState.value.computed.extraCharges.toDouble())}")
-                        Text("Order total: ${CurrencyFormatters.formatUsd(uiState.value.computed.orderTotal.toDouble())}")
+                        Text("Subtotal: ${CurrencyFormatters.formatUsd(uiState.value.computed.subtotalCents / 100.0)}")
+                        Text("Extra charges: ${CurrencyFormatters.formatUsd(uiState.value.computed.extraChargesCents / 100.0)}")
+                        Text("Order total: ${CurrencyFormatters.formatUsd(uiState.value.computed.totalCents / 100.0)}")
                     }
                 }
             }
@@ -101,10 +101,10 @@ fun OrderEntryScreen(
                 val computedLine = uiState.value.computed.lines[item.id]
                 OrderItemCard(
                     item = item,
-                    lineSubtotal = computedLine?.lineSubtotal?.toDouble() ?: 0.0,
-                    allocatedExtra = computedLine?.allocatedExtra?.toDouble() ?: 0.0,
-                    baseUnitCost = computedLine?.baseUnitCost?.toDouble() ?: 0.0,
-                    adjustedUnitCost = computedLine?.adjustedUnitCost?.toDouble() ?: 0.0,
+                    lineSubtotalCents = computedLine?.lineSubtotalCents ?: 0,
+                    allocatedExtraCents = computedLine?.allocatedExtraCents ?: 0,
+                    baseUnitCostCents = computedLine?.unitPriceCents ?: 0,
+                    adjustedUnitCostCents = computedLine?.adjustedUnitCostCents ?: 0,
                     onNameChanged = { viewModel.onItemNameChanged(item.id, it) },
                     onTypeChanged = { viewModel.onItemTypeChanged(item.id, it) },
                     onUnitPriceChanged = { viewModel.onUnitPriceChanged(item.id, it) },
@@ -178,10 +178,10 @@ private fun ExtraChargeModeCard(
 @Composable
 private fun OrderItemCard(
     item: OrderEntryItemUi,
-    lineSubtotal: Double,
-    allocatedExtra: Double,
-    baseUnitCost: Double,
-    adjustedUnitCost: Double,
+    lineSubtotalCents: Int,
+    allocatedExtraCents: Int,
+    baseUnitCostCents: Int,
+    adjustedUnitCostCents: Int,
     onNameChanged: (String) -> Unit,
     onTypeChanged: (ComponentType) -> Unit,
     onUnitPriceChanged: (String) -> Unit,
@@ -220,10 +220,10 @@ private fun OrderItemCard(
                 selected = item.updateMode,
                 onSelected = onModeChanged,
             )
-            Text("Line subtotal: ${CurrencyFormatters.formatUsd(lineSubtotal)}")
-            Text("Base unit cost: ${CurrencyFormatters.formatUsd(baseUnitCost)}")
-            Text("Allocated extra: ${CurrencyFormatters.formatUsd(allocatedExtra)}")
-            Text("Adjusted unit cost: ${CurrencyFormatters.formatUsd(adjustedUnitCost)}")
+            Text("Line subtotal: ${CurrencyFormatters.formatUsd(lineSubtotalCents / 100.0)}")
+            Text("Base unit cost: ${CurrencyFormatters.formatUsd(baseUnitCostCents / 100.0)}")
+            Text("Allocated extra: ${CurrencyFormatters.formatUsd(allocatedExtraCents / 100.0)}")
+            Text("Adjusted unit cost: ${CurrencyFormatters.formatUsd(adjustedUnitCostCents / 100.0)}")
             TextButton(onClick = onRemove) { Text("Remove") }
         }
     }
