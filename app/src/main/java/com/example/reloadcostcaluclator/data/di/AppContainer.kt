@@ -4,7 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.example.reloadcostcaluclator.data.local.db.ReloadingDatabase
 import com.example.reloadcostcaluclator.data.local.db.ReloadingDatabaseMigrations
-import com.example.reloadcostcaluclator.data.reference.FactoryAmmoReferenceRepository
+import com.example.reloadcostcaluclator.data.repository.FactoryComparisonRepository
 import com.example.reloadcostcaluclator.data.repository.BrassRepository
 import com.example.reloadcostcaluclator.data.repository.BulletRepository
 import com.example.reloadcostcaluclator.data.repository.LoadRecipeRepository
@@ -23,6 +23,7 @@ class AppContainer(context: Context) {
                 ReloadingDatabaseMigrations.MIGRATION_1_2,
                 ReloadingDatabaseMigrations.MIGRATION_2_3,
                 ReloadingDatabaseMigrations.MIGRATION_3_4,
+                ReloadingDatabaseMigrations.MIGRATION_4_5,
             )
             .build()
     }
@@ -59,7 +60,7 @@ class AppContainer(context: Context) {
         )
     }
 
-    val factoryAmmoReferenceRepository: FactoryAmmoReferenceRepository by lazy {
-        FactoryAmmoReferenceRepository()
+    val factoryComparisonRepository: FactoryComparisonRepository by lazy {
+        FactoryComparisonRepository(database.factoryComparisonDao())
     }
 }

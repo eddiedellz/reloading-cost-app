@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.filled.AddShoppingCart
+import androidx.compose.material.icons.filled.Compare
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -64,6 +65,7 @@ fun ComponentsScreen(
     onBulletsClick: () -> Unit,
     onBrassClick: () -> Unit,
     onOrderEntryClick: () -> Unit,
+    onFactoryComparisonClick: () -> Unit,
 ) {
     val cards = listOf(
         ComponentCard("Powders", "Burn rates and lot cost", Icons.Filled.Science, onPowdersClick),
@@ -71,6 +73,7 @@ fun ComponentsScreen(
         ComponentCard("Bullets", "Profiles, weight, and cost", Icons.Filled.Tune, onBulletsClick),
         ComponentCard("Brass", "Case lifecycle and value", Icons.Filled.Inventory2, onBrassClick),
         ComponentCard("Orders", "Capture purchases + landed cost", Icons.Filled.AddShoppingCart, onOrderEntryClick),
+        ComponentCard("Factory Cost", "Track factory ammo pricing", Icons.Filled.Compare, onFactoryComparisonClick),
     )
 
     Scaffold(

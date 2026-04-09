@@ -45,6 +45,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.reloadcostcaluclator.data.repository.BrassRepository
 import com.example.reloadcostcaluclator.data.repository.BulletRepository
+import com.example.reloadcostcaluclator.data.repository.FactoryComparisonRepository
 import com.example.reloadcostcaluclator.data.repository.LoadRecipeRepository
 import com.example.reloadcostcaluclator.data.repository.PowderRepository
 import com.example.reloadcostcaluclator.data.repository.PrimerRepository
@@ -73,6 +74,7 @@ fun HomeScreen(
     primerRepository: PrimerRepository,
     bulletRepository: BulletRepository,
     brassRepository: BrassRepository,
+    factoryComparisonRepository: FactoryComparisonRepository,
     onComponentsClick: () -> Unit,
     onLoadsToolsClick: () -> Unit,
     onCalculatorClick: () -> Unit,
@@ -84,6 +86,7 @@ fun HomeScreen(
             primerRepository = primerRepository,
             bulletRepository = bulletRepository,
             brassRepository = brassRepository,
+            factoryComparisonRepository = factoryComparisonRepository,
         ),
     ),
 ) {
@@ -282,7 +285,7 @@ private fun LoadSummaryRow(
                 color = SubtleText,
             )
             Text(
-                text = "1000: ${CurrencyFormatters.formatUsd(item.costPer1000)}",
+                text = "100: ${CurrencyFormatters.formatUsd(item.costPer100)}",
                 style = MaterialTheme.typography.bodySmall,
                 color = SubtleText,
             )

@@ -7,6 +7,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.reloadcostcaluclator.data.local.dao.BrassDao
 import com.example.reloadcostcaluclator.data.local.dao.BulletDao
 import com.example.reloadcostcaluclator.data.local.dao.ComponentPriceHistoryDao
+import com.example.reloadcostcaluclator.data.local.dao.FactoryComparisonDao
 import com.example.reloadcostcaluclator.data.local.dao.LoadRecipeDao
 import com.example.reloadcostcaluclator.data.local.dao.PowderDao
 import com.example.reloadcostcaluclator.data.local.dao.PrimerDao
@@ -17,6 +18,7 @@ import com.example.reloadcostcaluclator.data.local.entity.ComponentPriceHistoryE
 import com.example.reloadcostcaluclator.data.local.entity.ComponentUpdateMode
 import com.example.reloadcostcaluclator.data.local.entity.ExtraChargeAllocationMethod
 import com.example.reloadcostcaluclator.data.local.entity.ExtraChargeMode
+import com.example.reloadcostcaluclator.data.local.entity.FactoryComparisonEntity
 import com.example.reloadcostcaluclator.data.local.entity.LoadRecipeEntity
 import com.example.reloadcostcaluclator.data.local.entity.PowderEntity
 import com.example.reloadcostcaluclator.data.local.entity.PrimerEntity
@@ -33,8 +35,9 @@ import com.example.reloadcostcaluclator.data.local.entity.PurchaseOrderItemEntit
         PurchaseOrderEntity::class,
         PurchaseOrderItemEntity::class,
         ComponentPriceHistoryEntity::class,
+        FactoryComparisonEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = false,
 )
 abstract class ReloadingDatabase : RoomDatabase() {
@@ -45,6 +48,7 @@ abstract class ReloadingDatabase : RoomDatabase() {
     abstract fun loadRecipeDao(): LoadRecipeDao
     abstract fun purchaseOrderDao(): PurchaseOrderDao
     abstract fun componentPriceHistoryDao(): ComponentPriceHistoryDao
+    abstract fun factoryComparisonDao(): FactoryComparisonDao
 }
 
 object ReloadingDatabaseMigrations {
@@ -173,6 +177,29 @@ object ReloadingDatabaseMigrations {
             database.execSQL("DROP TABLE purchase_order_items")
             database.execSQL("ALTER TABLE purchase_order_items_new RENAME TO purchase_order_items")
             database.execSQL("CREATE INDEX IF NOT EXISTS index_purchase_order_items_orderId ON purchase_order_items(orderId)")
+        }
+    }
+
+    val MIGRATION_4_5 = object : Migration(4, 5) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS factory_comparisons (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    brand TEXT NOT NULL,
+                    productName TEXT NOT NULL,
+                    caliber TEXT NOT NULL,
+                    grain INTEGER NOT NULL,
+                    bulletType TEXT,
+                    boxQuantity INTEGER NOT NULL,
+                    totalPrice REAL NOT NULL,
+                    costPerRound REAL NOT NULL,
+                    notes TEXT NOT NULL,
+                    createdAtEpochMillis INTEGER NOT NULL,
+                    updatedAtEpochMillis INTEGER NOT NULL
+                )
+                """.trimIndent(),
+            )
         }
     }
 }

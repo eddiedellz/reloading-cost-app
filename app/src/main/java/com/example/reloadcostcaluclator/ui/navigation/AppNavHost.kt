@@ -9,6 +9,8 @@ import androidx.navigation.navArgument
 import com.example.reloadcostcaluclator.data.di.AppContainer
 import com.example.reloadcostcaluclator.ui.screens.HomeScreen
 import com.example.reloadcostcaluclator.ui.screens.LoadCostCalculatorScreen
+import com.example.reloadcostcaluclator.ui.screens.factory.AddEditFactoryComparisonScreen
+import com.example.reloadcostcaluclator.ui.screens.factory.FactoryComparisonListScreen
 import com.example.reloadcostcaluclator.ui.screens.loadrecipes.LoadCostSummaryScreen
 import com.example.reloadcostcaluclator.ui.screens.components.AddEditBrassScreen
 import com.example.reloadcostcaluclator.ui.screens.components.ComponentsScreen
@@ -41,6 +43,7 @@ fun AppNavHost(
                 primerRepository = appContainer.primerRepository,
                 bulletRepository = appContainer.bulletRepository,
                 brassRepository = appContainer.brassRepository,
+                factoryComparisonRepository = appContainer.factoryComparisonRepository,
                 onComponentsClick = { navController.navigate(Routes.COMPONENTS) },
                 onLoadsToolsClick = { navController.navigate(Routes.LOADS) },
                 onCalculatorClick = { navController.navigate(Routes.CALCULATOR) },
@@ -58,6 +61,7 @@ fun AppNavHost(
                 onBulletsClick = { navController.navigate(Routes.BULLET_LIST) },
                 onBrassClick = { navController.navigate(Routes.BRASS_LIST) },
                 onOrderEntryClick = { navController.navigate(Routes.ORDER_ENTRY) },
+                onFactoryComparisonClick = { navController.navigate(Routes.FACTORY_COMPARISON_LIST) },
             )
         }
         composable(Routes.ORDER_ENTRY) {
@@ -74,6 +78,7 @@ fun AppNavHost(
                 primerRepository = appContainer.primerRepository,
                 bulletRepository = appContainer.bulletRepository,
                 brassRepository = appContainer.brassRepository,
+                factoryComparisonRepository = appContainer.factoryComparisonRepository,
                 onBackClick = { navController.popBackStack() },
             )
         }
@@ -127,9 +132,38 @@ fun AppNavHost(
                 primerRepository = appContainer.primerRepository,
                 bulletRepository = appContainer.bulletRepository,
                 brassRepository = appContainer.brassRepository,
-                factoryAmmoReferenceRepository = appContainer.factoryAmmoReferenceRepository,
+                factoryComparisonRepository = appContainer.factoryComparisonRepository,
                 onBackClick = { navController.popBackStack() },
                 onEditClick = { loadId -> navController.navigate("${Routes.ADD_EDIT_LOAD}/$loadId") },
+            )
+        }
+
+
+        composable(Routes.FACTORY_COMPARISON_LIST) {
+            FactoryComparisonListScreen(
+                repository = appContainer.factoryComparisonRepository,
+                onBackClick = { navController.popBackStack() },
+                onAddClick = { navController.navigate(Routes.ADD_EDIT_FACTORY_COMPARISON) },
+                onEditClick = { id -> navController.navigate("${Routes.ADD_EDIT_FACTORY_COMPARISON}/$id") },
+            )
+        }
+        composable(Routes.ADD_EDIT_FACTORY_COMPARISON) {
+            AddEditFactoryComparisonScreen(
+                repository = appContainer.factoryComparisonRepository,
+                itemId = null,
+                onBackClick = { navController.popBackStack() },
+                onSaved = { navController.popBackStack() },
+            )
+        }
+        composable(
+            route = "${Routes.ADD_EDIT_FACTORY_COMPARISON}/{${Routes.ITEM_ID_ARG}}",
+            arguments = listOf(navArgument(Routes.ITEM_ID_ARG) { type = NavType.LongType }),
+        ) { backStackEntry ->
+            AddEditFactoryComparisonScreen(
+                repository = appContainer.factoryComparisonRepository,
+                itemId = backStackEntry.arguments?.getLong(Routes.ITEM_ID_ARG),
+                onBackClick = { navController.popBackStack() },
+                onSaved = { navController.popBackStack() },
             )
         }
 
