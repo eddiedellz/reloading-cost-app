@@ -103,7 +103,7 @@ fun OrderEntryScreen(
                     item = item,
                     lineSubtotal = computedLine?.lineSubtotal?.toDouble() ?: 0.0,
                     allocatedExtra = computedLine?.allocatedExtra?.toDouble() ?: 0.0,
-                    baseUnitCost = item.unitPrice.toDoubleOrNull() ?: 0.0,
+                    baseUnitCost = computedLine?.baseUnitCost?.toDouble() ?: 0.0,
                     adjustedUnitCost = computedLine?.adjustedUnitCost?.toDouble() ?: 0.0,
                     onNameChanged = { viewModel.onItemNameChanged(item.id, it) },
                     onTypeChanged = { viewModel.onItemTypeChanged(item.id, it) },

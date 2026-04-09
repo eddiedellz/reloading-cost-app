@@ -47,15 +47,17 @@ class AddEditBulletViewModel(
     fun onNameChanged(value: String) = _uiState.update { it.copy(name = value, errorMessage = null) }
     fun onGrainChanged(value: String) = _uiState.update { it.copy(grain = value, errorMessage = null) }
     fun onBulletTypeChanged(value: String) = _uiState.update { it.copy(bulletType = value, errorMessage = null) }
-    fun onPricePaidChanged(value: String) = _uiState.update { it.copy(pricePaid = value, errorMessage = null) }
+    fun onPricePaidChanged(value: String) = _uiState.update { it.copy(pricePaid = sanitizeDecimalInput(value), errorMessage = null) }
     fun onQuantityChanged(value: String) = _uiState.update { it.copy(quantity = value, errorMessage = null) }
 
     fun save(onSaved: () -> Unit) {
         val state = _uiState.value
+        val parsedPricePaid = state.pricePaid.toDoubleOrNull()
+        val parsedQuantity = state.quantity.toIntOrNull()
         val validationError = when {
             state.name.isBlank() -> "Name is required."
-            state.pricePaid.toDoubleOrNull()?.let { it > 0.0 } != true -> "Price paid must be greater than 0."
-            state.quantity.toIntOrNull()?.let { it > 0 } != true -> "Quantity must be greater than 0."
+            parsedPricePaid?.let { it > 0.0 } != true -> "Price paid must be greater than 0."
+            parsedQuantity?.let { it > 0 } != true -> "Quantity must be greater than 0."
             else -> null
         }
         if (validationError != null) {
@@ -69,12 +71,27 @@ class AddEditBulletViewModel(
                 name = state.name.trim(),
                 grain = state.grain.toIntOrNull(),
                 bulletType = state.bulletType.trim().ifBlank { null },
-                pricePaid = state.pricePaid.toDouble(),
-                quantity = state.quantity.toInt(),
+                pricePaid = parsedPricePaid ?: 0.0,
+                quantity = parsedQuantity ?: 0,
             )
             if (state.id == null) repository.insert(entity) else repository.update(entity)
             onSaved()
         }
+    }
+
+    private fun sanitizeDecimalInput(value: String): String {
+        val builder = StringBuilder()
+        var hasDot = false
+        value.forEach { char ->
+            when {
+                char.isDigit() -> builder.append(char)
+                char == '.' && !hasDot -> {
+                    builder.append(char)
+                    hasDot = true
+                }
+            }
+        }
+        return builder.toString()
     }
 
     companion object {

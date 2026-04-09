@@ -43,7 +43,7 @@ class AddEditBrassViewModel(
     }
 
     fun onNameChanged(value: String) = _uiState.update { it.copy(name = value, errorMessage = null) }
-    fun onPricePaidChanged(value: String) = _uiState.update { it.copy(pricePaid = value, errorMessage = null) }
+    fun onPricePaidChanged(value: String) = _uiState.update { it.copy(pricePaid = sanitizeDecimalInput(value), errorMessage = null) }
     fun onQuantityChanged(value: String) = _uiState.update { it.copy(quantity = value, errorMessage = null) }
     fun onReloadCountChanged(value: String) = _uiState.update { it.copy(reloadCount = value, errorMessage = null) }
 
@@ -84,5 +84,20 @@ class AddEditBrassViewModel(
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>): T = AddEditBrassViewModel(repository) as T
             }
+    }
+
+    private fun sanitizeDecimalInput(value: String): String {
+        val builder = StringBuilder()
+        var hasDot = false
+        value.forEach { char ->
+            when {
+                char.isDigit() -> builder.append(char)
+                char == '.' && !hasDot -> {
+                    builder.append(char)
+                    hasDot = true
+                }
+            }
+        }
+        return builder.toString()
     }
 }

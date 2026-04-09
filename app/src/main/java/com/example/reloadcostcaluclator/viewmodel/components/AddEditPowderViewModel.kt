@@ -41,7 +41,7 @@ class AddEditPowderViewModel(
     }
 
     fun onNameChanged(value: String) = _uiState.update { it.copy(name = value, errorMessage = null) }
-    fun onPricePaidChanged(value: String) = _uiState.update { it.copy(pricePaid = value, errorMessage = null) }
+    fun onPricePaidChanged(value: String) = _uiState.update { it.copy(pricePaid = sanitizeDecimalInput(value), errorMessage = null) }
     fun onContainerWeightChanged(value: String) = _uiState.update { it.copy(containerWeightLb = value, errorMessage = null) }
 
     fun save(onSaved: () -> Unit) {
@@ -84,5 +84,20 @@ class AddEditPowderViewModel(
                     return AddEditPowderViewModel(repository) as T
                 }
             }
+    }
+
+    private fun sanitizeDecimalInput(value: String): String {
+        val builder = StringBuilder()
+        var hasDot = false
+        value.forEach { char ->
+            when {
+                char.isDigit() -> builder.append(char)
+                char == '.' && !hasDot -> {
+                    builder.append(char)
+                    hasDot = true
+                }
+            }
+        }
+        return builder.toString()
     }
 }
