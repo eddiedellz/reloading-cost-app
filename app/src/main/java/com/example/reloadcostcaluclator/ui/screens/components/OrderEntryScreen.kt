@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
@@ -15,6 +17,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
@@ -79,6 +82,20 @@ fun OrderEntryScreen(
             }
 
             item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text("What did you buy?", style = MaterialTheme.typography.titleMedium)
+                        Text("Tap one of these buttons to add that item to this receipt/cart.")
+                        ComponentTypeQuickAddRow(onAddComponent = viewModel::addItemRow)
+                        Text("Items added: ${uiState.value.items.size}")
+                    }
+                }
+            }
+
+            item {
                 EnumDropdown(
                     label = "Allocation method",
                     options = ExtraChargeAllocationMethod.entries,
@@ -97,10 +114,30 @@ fun OrderEntryScreen(
                 }
             }
 
+            item {
+                Text("Receipt items", style = MaterialTheme.typography.titleMedium)
+            }
+
+            if (uiState.value.items.isEmpty()) {
+                item {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Text("No items added yet.", style = MaterialTheme.typography.titleSmall)
+                            Text("Tap Powder, Primer, Bullet, Brass, or Other above to start building this purchase order.")
+                        }
+                    }
+                }
+            }
+
             items(uiState.value.items, key = { it.id }) { item ->
+                val itemNumber = uiState.value.items.indexOf(item) + 1
                 val computedLine = uiState.value.computed.lines[item.id]
                 OrderItemCard(
                     item = item,
+                    itemNumber = itemNumber,
                     lineSubtotalCents = computedLine?.lineSubtotalCents ?: 0,
                     allocatedExtraCents = computedLine?.allocatedExtraCents ?: 0,
                     baseUnitCostCents = computedLine?.unitPriceCents ?: 0,
@@ -117,8 +154,7 @@ fun OrderEntryScreen(
 
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = viewModel::addItemRow) { Text("Add Item") }
-                    Button(onClick = viewModel::saveOrder) { Text("Save Order") }
+                    Button(onClick = viewModel::saveOrder) { Text("Save Purchase Order") }
                 }
             }
 
@@ -127,6 +163,38 @@ fun OrderEntryScreen(
             }
         }
     }
+}
+
+@Composable
+private fun ComponentTypeQuickAddRow(
+    onAddComponent: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        ComponentType.entries.forEach { type ->
+            Button(onClick = onAddComponent) {
+                Text("+ ${type.displayLabel()}")
+            }
+        }
+    }
+}
+
+private fun ComponentType.displayLabel(): String = when (this) {
+    ComponentType.POWDER -> "Powder"
+    ComponentType.PRIMER -> "Primer"
+    ComponentType.BULLET -> "Bullet"
+    ComponentType.BRASS -> "Brass"
+}
+
+private fun ComponentType.purchaseExample(): String = when (this) {
+    ComponentType.POWDER -> "Example: 1 lb container. If you bought 2 containers, enter 1 in amount and 2 in packages."
+    ComponentType.PRIMER -> "Example: 1 case of 1,000 primers. Enter 1000 in amount and 1 in packages."
+    ComponentType.BULLET -> "Example: box of 500 bullets. Enter 500 in amount and the number of boxes bought."
+    ComponentType.BRASS -> "Example: bag of 250 brass cases. Enter 250 in amount and the number of bags bought."
 }
 
 @Composable
@@ -178,6 +246,7 @@ private fun ExtraChargeModeCard(
 @Composable
 private fun OrderItemCard(
     item: OrderEntryItemUi,
+    itemNumber: Int,
     lineSubtotalCents: Int,
     allocatedExtraCents: Int,
     baseUnitCostCents: Int,
@@ -192,7 +261,14 @@ private fun OrderItemCard(
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            TextInputField(label = "Item name", value = item.itemName, onValueChange = onNameChanged)
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(
+                    "${item.componentType.displayLabel()} item #$itemNumber",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                TextButton(onClick = onRemove) { Text("Remove") }
+            }
+            TextInputField(label = "Receipt/cart item name", value = item.itemName, onValueChange = onNameChanged)
             EnumDropdown(
                 label = "Component type",
                 options = ComponentType.entries,
@@ -200,20 +276,21 @@ private fun OrderItemCard(
                 onSelected = onTypeChanged,
             )
             DecimalNumberInputField(
-                label = "Unit price",
+                label = "Price paid for this package/case",
                 value = item.unitPrice,
                 onValueChange = onUnitPriceChanged,
             )
             DecimalNumberInputField(
-                label = "Package quantity",
+                label = "Amount inside each package/case",
                 value = item.packageQuantity,
                 onValueChange = onPackageQuantityChanged,
             )
             DecimalNumberInputField(
-                label = "Purchase quantity",
+                label = "Number of packages/cases bought",
                 value = item.purchaseQuantity,
                 onValueChange = onPurchaseQuantityChanged,
             )
+            Text(item.componentType.purchaseExample())
             EnumDropdown(
                 label = "Save behavior",
                 options = ComponentUpdateMode.entries,
@@ -223,8 +300,7 @@ private fun OrderItemCard(
             Text("Line subtotal: ${CurrencyFormatters.formatUsd(lineSubtotalCents / 100.0)}")
             Text("Base unit cost: ${CurrencyFormatters.formatUsd(baseUnitCostCents / 100.0)}")
             Text("Allocated extra: ${CurrencyFormatters.formatUsd(allocatedExtraCents / 100.0)}")
-            Text("Adjusted unit cost: ${CurrencyFormatters.formatUsd(adjustedUnitCostCents / 100.0)}")
-            TextButton(onClick = onRemove) { Text("Remove") }
+            Text("True cost per unit after tax/shipping/hazmat: ${CurrencyFormatters.formatUsd(adjustedUnitCostCents / 100.0)}")
         }
     }
 }
