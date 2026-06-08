@@ -50,7 +50,7 @@ data class OrderEntryUiState(
     val allocationMethod: ExtraChargeAllocationMethod = ExtraChargeAllocationMethod.PROPORTIONAL_BY_LINE_SUBTOTAL,
     val orderTotal: String = "",
     val manualExtraCharges: String = "",
-    val items: List<OrderEntryItemUi> = listOf(OrderEntryItemUi(id = 1L)),
+    val items: List<OrderEntryItemUi> = emptyList(),
     val computed: OrderEntryComputedTotals = OrderEntryComputedTotals(
         subtotalCents = 0,
         extraChargesCents = 0,
@@ -66,20 +66,34 @@ class OrderEntryViewModel(
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(OrderEntryUiState())
     val uiState: StateFlow<OrderEntryUiState> = _uiState.asStateFlow()
-    private var nextId: Long = 2
+    private var nextId: Long = 1
 
     fun onExtraChargeModeChanged(value: ExtraChargeMode) = updateState { it.copy(extraChargeMode = value) }
     fun onAllocationMethodChanged(value: ExtraChargeAllocationMethod) = updateState { it.copy(allocationMethod = value) }
     fun onManualExtraChargesChanged(value: String) = updateState { it.copy(manualExtraCharges = sanitizeMoneyInput(value)) }
     fun onOrderTotalChanged(value: String) = updateState { it.copy(orderTotal = sanitizeMoneyInput(value)) }
 
-    fun addItemRow() = updateState { it.copy(items = it.items + OrderEntryItemUi(id = nextId++)) }
+    fun addItem(
+        componentType: ComponentType,
+        itemName: String,
+        packageQuantity: String,
+        purchaseQuantity: String,
+        unitPrice: String,
+    ) = updateState { state ->
+        state.copy(
+            items = state.items + OrderEntryItemUi(
+                id = nextId++,
+                itemName = itemName.trim().ifBlank { componentType.defaultItemName() },
+                componentType = componentType,
+                unitPrice = sanitizeMoneyInput(unitPrice),
+                packageQuantity = sanitizeDecimalInput(packageQuantity),
+                purchaseQuantity = sanitizeDecimalInput(purchaseQuantity),
+            ),
+        )
+    }
 
     fun removeItemRow(id: Long) {
-        updateState {
-            val remaining = it.items.filterNot { row -> row.id == id }
-            it.copy(items = if (remaining.isEmpty()) listOf(OrderEntryItemUi(id = nextId++)) else remaining)
-        }
+        updateState { state -> state.copy(items = state.items.filterNot { row -> row.id == id }) }
     }
 
     fun onItemNameChanged(id: Long, value: String) = updateItem(id) { it.copy(itemName = value) }
@@ -149,6 +163,14 @@ class OrderEntryViewModel(
                 _uiState.update { it.copy(errorMessage = "Unable to save order. Check logs for details.") }
             }
         }
+    }
+
+    private fun ComponentType.defaultItemName(): String = when (this) {
+        ComponentType.POWDER -> "Powder Item"
+        ComponentType.PRIMER -> "Primer Item"
+        ComponentType.BULLET -> "Bullet Item"
+        ComponentType.BRASS -> "Brass Item"
+        ComponentType.OTHER -> "Other Item"
     }
 
     private fun updateItem(id: Long, block: (OrderEntryItemUi) -> OrderEntryItemUi) {
