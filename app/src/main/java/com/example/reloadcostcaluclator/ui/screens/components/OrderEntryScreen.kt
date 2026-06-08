@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
@@ -53,7 +54,25 @@ fun OrderEntryScreen(
     viewModel: OrderEntryViewModel = viewModel(factory = OrderEntryViewModel.provideFactory(repository)),
 ) {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle()
+    var addDialogType by remember { mutableStateOf<ComponentType?>(null) }
     if (uiState.value.saved) onSaved()
+
+    addDialogType?.let { componentType ->
+        AddItemDialog(
+            componentType = componentType,
+            onDismiss = { addDialogType = null },
+            onAddItem = { name, packageQuantity, purchaseQuantity, unitPrice ->
+                viewModel.addItem(
+                    componentType = componentType,
+                    itemName = name,
+                    packageQuantity = packageQuantity,
+                    purchaseQuantity = purchaseQuantity,
+                    unitPrice = unitPrice,
+                )
+                addDialogType = null
+            },
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -89,7 +108,7 @@ fun OrderEntryScreen(
                     ) {
                         Text("What did you buy?", style = MaterialTheme.typography.titleMedium)
                         Text("Tap one of these buttons to add that item to this receipt/cart.")
-                        ComponentTypeQuickAddRow(onAddComponent = viewModel::addItemRow)
+                        ComponentTypeQuickAddRow(onAddComponent = { addDialogType = it })
                         Text("Items added: ${uiState.value.items.size}")
                     }
                 }
@@ -125,19 +144,19 @@ fun OrderEntryScreen(
                             modifier = Modifier.padding(12.dp),
                             verticalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
-                            Text("No items added yet.", style = MaterialTheme.typography.titleSmall)
-                            Text("Tap Powder, Primer, Bullet, Brass, or Other above to start building this purchase order.")
+                            Text(
+                                "No items added yet. Tap a component above to add something from your receipt/cart.",
+                                style = MaterialTheme.typography.titleSmall,
+                            )
                         }
                     }
                 }
             }
 
             items(uiState.value.items, key = { it.id }) { item ->
-                val itemNumber = uiState.value.items.indexOf(item) + 1
                 val computedLine = uiState.value.computed.lines[item.id]
                 OrderItemCard(
                     item = item,
-                    itemNumber = itemNumber,
                     lineSubtotalCents = computedLine?.lineSubtotalCents ?: 0,
                     allocatedExtraCents = computedLine?.allocatedExtraCents ?: 0,
                     baseUnitCostCents = computedLine?.unitPriceCents ?: 0,
@@ -167,7 +186,7 @@ fun OrderEntryScreen(
 
 @Composable
 private fun ComponentTypeQuickAddRow(
-    onAddComponent: () -> Unit,
+    onAddComponent: (ComponentType) -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -176,7 +195,7 @@ private fun ComponentTypeQuickAddRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         ComponentType.entries.forEach { type ->
-            Button(onClick = onAddComponent) {
+            Button(onClick = { onAddComponent(type) }) {
                 Text("+ ${type.displayLabel()}")
             }
         }
@@ -188,6 +207,55 @@ private fun ComponentType.displayLabel(): String = when (this) {
     ComponentType.PRIMER -> "Primer"
     ComponentType.BULLET -> "Bullet"
     ComponentType.BRASS -> "Brass"
+    ComponentType.OTHER -> "Other"
+}
+
+private fun ComponentType.dialogTitle(): String = when (this) {
+    ComponentType.POWDER -> "Add Powder"
+    ComponentType.PRIMER -> "Add Primer"
+    ComponentType.BULLET -> "Add Bullets"
+    ComponentType.BRASS -> "Add Brass"
+    ComponentType.OTHER -> "Add Other"
+}
+
+private fun ComponentType.defaultItemName(): String = when (this) {
+    ComponentType.POWDER -> "Powder Item"
+    ComponentType.PRIMER -> "Primer Item"
+    ComponentType.BULLET -> "Bullet Item"
+    ComponentType.BRASS -> "Brass Item"
+    ComponentType.OTHER -> "Other Item"
+}
+
+private fun ComponentType.itemNameLabel(): String = when (this) {
+    ComponentType.POWDER -> "Powder name"
+    ComponentType.PRIMER -> "Primer name"
+    ComponentType.BULLET -> "Bullet name"
+    ComponentType.BRASS -> "Brass name"
+    ComponentType.OTHER -> "Item name"
+}
+
+private fun ComponentType.packageQuantityLabel(): String = when (this) {
+    ComponentType.POWDER -> "Container size in pounds"
+    ComponentType.PRIMER -> "Primers per case/box"
+    ComponentType.BULLET -> "Bullets per box"
+    ComponentType.BRASS -> "Brass pieces per bag/box"
+    ComponentType.OTHER -> "Quantity per package"
+}
+
+private fun ComponentType.purchaseQuantityLabel(): String = when (this) {
+    ComponentType.POWDER -> "Number of containers bought"
+    ComponentType.PRIMER -> "Number of cases/boxes bought"
+    ComponentType.BULLET -> "Number of boxes bought"
+    ComponentType.BRASS -> "Number of bags/boxes bought"
+    ComponentType.OTHER -> "Number of packages bought"
+}
+
+private fun ComponentType.unitPriceLabel(): String = when (this) {
+    ComponentType.POWDER -> "Price per container"
+    ComponentType.PRIMER -> "Price per case/box"
+    ComponentType.BULLET -> "Price per box"
+    ComponentType.BRASS -> "Price per bag/box"
+    ComponentType.OTHER -> "Price per package"
 }
 
 private fun ComponentType.purchaseExample(): String = when (this) {
@@ -195,6 +263,56 @@ private fun ComponentType.purchaseExample(): String = when (this) {
     ComponentType.PRIMER -> "Example: 1 case of 1,000 primers. Enter 1000 in amount and 1 in packages."
     ComponentType.BULLET -> "Example: box of 500 bullets. Enter 500 in amount and the number of boxes bought."
     ComponentType.BRASS -> "Example: bag of 250 brass cases. Enter 250 in amount and the number of bags bought."
+    ComponentType.OTHER -> "Example: package quantity of 1 with the number of packages bought."
+}
+
+@Composable
+private fun AddItemDialog(
+    componentType: ComponentType,
+    onDismiss: () -> Unit,
+    onAddItem: (name: String, packageQuantity: String, purchaseQuantity: String, unitPrice: String) -> Unit,
+) {
+    var name by remember(componentType) { mutableStateOf("") }
+    var packageQuantity by remember(componentType) { mutableStateOf("") }
+    var purchaseQuantity by remember(componentType) { mutableStateOf("") }
+    var unitPrice by remember(componentType) { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(componentType.dialogTitle()) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextInputField(
+                    label = componentType.itemNameLabel(),
+                    value = name,
+                    onValueChange = { name = it },
+                )
+                DecimalNumberInputField(
+                    label = componentType.packageQuantityLabel(),
+                    value = packageQuantity,
+                    onValueChange = { packageQuantity = it },
+                )
+                DecimalNumberInputField(
+                    label = componentType.purchaseQuantityLabel(),
+                    value = purchaseQuantity,
+                    onValueChange = { purchaseQuantity = it },
+                )
+                DecimalNumberInputField(
+                    label = componentType.unitPriceLabel(),
+                    value = unitPrice,
+                    onValueChange = { unitPrice = it },
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = { onAddItem(name, packageQuantity, purchaseQuantity, unitPrice) }) {
+                Text("Add Item")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
 }
 
 @Composable
@@ -246,7 +364,6 @@ private fun ExtraChargeModeCard(
 @Composable
 private fun OrderItemCard(
     item: OrderEntryItemUi,
-    itemNumber: Int,
     lineSubtotalCents: Int,
     allocatedExtraCents: Int,
     baseUnitCostCents: Int,
@@ -263,7 +380,7 @@ private fun OrderItemCard(
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(
-                    "${item.componentType.displayLabel()} item #$itemNumber",
+                    item.itemName.ifBlank { item.componentType.defaultItemName() },
                     style = MaterialTheme.typography.titleMedium,
                 )
                 TextButton(onClick = onRemove) { Text("Remove") }
@@ -276,17 +393,17 @@ private fun OrderItemCard(
                 onSelected = onTypeChanged,
             )
             DecimalNumberInputField(
-                label = "Price paid for this package/case",
+                label = item.componentType.unitPriceLabel(),
                 value = item.unitPrice,
                 onValueChange = onUnitPriceChanged,
             )
             DecimalNumberInputField(
-                label = "Amount inside each package/case",
+                label = item.componentType.packageQuantityLabel(),
                 value = item.packageQuantity,
                 onValueChange = onPackageQuantityChanged,
             )
             DecimalNumberInputField(
-                label = "Number of packages/cases bought",
+                label = item.componentType.purchaseQuantityLabel(),
                 value = item.purchaseQuantity,
                 onValueChange = onPurchaseQuantityChanged,
             )

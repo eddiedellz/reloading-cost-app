@@ -5,6 +5,7 @@ enum class ComponentType {
     PRIMER,
     BULLET,
     BRASS,
+    OTHER,
 }
 
 enum class ComponentUpdateMode {

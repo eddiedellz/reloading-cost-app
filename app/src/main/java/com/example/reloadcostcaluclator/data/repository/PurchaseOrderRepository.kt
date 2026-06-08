@@ -124,7 +124,8 @@ class PurchaseOrderRepository(
                 }
 
                 val mapped = historyRecords.map { history ->
-                    history.copy(componentId = findComponentId(ComponentType.valueOf(history.componentType), history.componentName))
+                    val componentType = ComponentType.valueOf(history.componentType)
+                    history.copy(componentId = findComponentId(componentType, history.componentName))
                 }
                 priceHistoryDao.insertAll(mapped)
             }
@@ -275,6 +276,8 @@ class PurchaseOrderRepository(
                 }
                 if (existing == null) brassDao.insert(next) else brassDao.update(next)
             }
+
+            ComponentType.OTHER -> Unit
         }
     }
 
@@ -284,6 +287,7 @@ class PurchaseOrderRepository(
             ComponentType.PRIMER -> primerDao.getByName(name)?.id
             ComponentType.BULLET -> bulletDao.getByName(name)?.id
             ComponentType.BRASS -> brassDao.getByName(name)?.id
+            ComponentType.OTHER -> null
         }
     }
 
